@@ -6,7 +6,8 @@
       "WebFetch(domain:reference.langchain.com)",
       "WebFetch(domain:docs.langchain.com)",
       "WebFetch(domain:pypi.org)",
-      "WebFetch(domain:e2b.dev)"
+      "WebFetch(domain:e2b.dev)",
+      "Bash(uv run *)"
     ]
   }
 }
