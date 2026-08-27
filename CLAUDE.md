@@ -9,6 +9,10 @@ chi-square, logistic regression), but works on general spreadsheets too.
 Full spec: `docs/requirements.md`. It's the source of truth for any
 "should X work like Y" question.
 
+For what's actually built vs. not, see `docs/progress.md`. It cites the
+exact FR/NFR section each built piece satisfies, so check it before
+believing any "is X done" claim, including the summary below.
+
 ## Current state (as of Aug 2026)
 The core agent loop works and is verified against real sample files. Built
 so far:
@@ -19,12 +23,18 @@ so far:
   the Jupyter-style auto-displayed value of a bare last expression, not
   just explicit `print()` output.
 - `agent.py`: the actual agent. A LangChain `create_agent` ReAct loop with
-  five tools (`read_excel_tool`, `profile_tool`, `run_code_tool`,
-  `recommend_test_tool`, `classify_columns_tool`). One sandbox is shared
-  per run so state persists across `run_code_tool` calls, which lets it
-  transform data step by step (FR-9.7). `statsmodels` gets installed into
-  the sandbox on startup (for the regression tests; `scipy` is already
-  there). LLM is OpenAI (`gpt-4o-mini`) via `langchain_openai`.
+  six tools (`read_excel_tool`, `profile_tool`, `run_code_tool`,
+  `recommend_test_tool`, `classify_columns_tool`, `infer_scale_tool`). One
+  sandbox is shared per run so state persists across `run_code_tool`
+  calls, which lets it transform data step by step (FR-9.7). `statsmodels`
+  gets installed into the sandbox on startup (for the regression tests;
+  `scipy` is already there). LLM is OpenAI (`gpt-4o-mini`) via
+  `langchain_openai`. `run()`'s trace printer walks every message new
+  since the last stream step, not just the last one - `stream_mode=
+  "values"` batches parallel tool calls into one step with several new
+  `ToolMessage`s, so printing only the last message silently dropped the
+  rest of the trace (the model still saw them; only the printed log was
+  incomplete).
 - `recommend_test`: a plain, deterministic function in `tools.py` that
   implements the FR-9.9 test-selection table (t-test, ANOVA, chi-square,
   correlation, regression, ...). The lookup itself involves no LLM
@@ -44,14 +54,27 @@ so far:
   read them without re-deriving. Verified against two real files: it
   correctly separated identifier/continuous/categorical/likert columns
   and accepted the suggestions without needing an override on either.
+- `infer_scale`: a function in `tools.py` (FR-9.2) that suggests one
+  Likert item's point count and label->score map from its actual response
+  values (numeric columns get an identity mapping at low confidence; text
+  columns get matched against the same built-in Likert wordings
+  `classify_columns` uses, at high confidence). It never guesses
+  reverse-coding itself - that depends on how an item's wording points
+  relative to the construct it belongs to, not on the item's own values -
+  so the agent must judge it after reading the item against its subscale
+  peers. Results land in `SCALES` (agent.py, keyed by handle_id -> column).
+  Verified end to end: the agent called `infer_scale_tool` once per
+  Likert item across two runs, correctly matched the known wording each
+  time, and made an explicit reverse-coded call per item instead of
+  leaving the default.
 - `main.py`: smoke test that runs the agent against one sample file.
 
 Survey-mode pipeline (FR-9.1-9.8), built one step at a time: column
-classification is done (above). Not built yet: infer_scale (per-item
-scale + reverse-coding), group_items (subscale grouping), score_items
-(scoring + Cronbach's alpha). Also not built: memory system, context
-compression. Treat anything about those in requirements.md as a target,
-not a description of existing code.
+classification and per-item scale inference are done (above). Not built
+yet: group_items (subscale grouping), score_items (scoring + Cronbach's
+alpha). Also not built: memory system, context compression. Treat
+anything about those in requirements.md as a target, not a description of
+existing code.
 
 Open decision (see `docs/requirements.md` §10): whether the memory/
 context-compression milestone should use LangChain's `deepagents` package
@@ -63,6 +86,7 @@ yet; evaluate when we get there.
 Autonomus Agent/
 ├── CLAUDE.md                         this file
 ├── docs/requirements.md              full spec
+├── docs/progress.md                  what's built vs. not, cited against the spec
 └── excel-analysis-agent-backend/     the code (Python, uv-managed)
     ├── main.py                       smoke test
     ├── agent.py                      the agent: tools + create_agent loop

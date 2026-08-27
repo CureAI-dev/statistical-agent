@@ -89,21 +89,22 @@ def recommend_test(
     return {"test": test, "function": function, "why": f"Matches '{question_type}' in the test-selection table."}
 
 
-# Common Likert response wordings (docs/requirements.md FR-9.1/FR-9.2).
-# A column whose values are a subset of one of these is almost certainly a
-# Likert item, not a plain nominal category - this is what separates
-# "likert" from "categorical" below, since both can have a handful of
-# short string values.
-_LIKERT_VOCABULARIES = [
-    {"never", "almost never", "sometimes", "fairly often", "very often"},
-    {"never", "rarely", "sometimes", "often", "always"},
-    {"strongly disagree", "disagree", "neutral", "agree", "strongly agree"},
-    {"strongly disagree", "disagree", "neither agree nor disagree", "agree", "strongly agree"},
-    {
+# Common Likert response wordings (docs/requirements.md FR-9.1/FR-9.2),
+# ordered low -> high so the same list doubles as the label->score map in
+# infer_scale() below. A column whose values are a subset of one of these
+# is almost certainly a Likert item, not a plain nominal category - this
+# is what separates "likert" from "categorical" in _classify_column,
+# since both can have a handful of short string values.
+_LIKERT_SCALES = [
+    ("never", "almost never", "sometimes", "fairly often", "very often"),
+    ("never", "rarely", "sometimes", "often", "always"),
+    ("strongly disagree", "disagree", "neutral", "agree", "strongly agree"),
+    ("strongly disagree", "disagree", "neither agree nor disagree", "agree", "strongly agree"),
+    (
         "strongly disagree", "disagree", "somewhat disagree",
         "neither agree nor disagree", "somewhat agree", "agree", "strongly agree",
-    },
-    {"poor", "fair", "good", "excellent"},
+    ),
+    ("poor", "fair", "good", "excellent"),
 ]
 
 _IDENTIFIER_KEYWORDS = ("timestamp", "consent", "respondent id", "identifier")
@@ -124,7 +125,7 @@ def _classify_column(series: pd.Series, n_rows: int) -> dict:
         return {**signals, "suggested_type": "continuous", "confidence": "medium"}
 
     values = {str(v).strip().lower() for v in non_null.unique()}
-    if len(values) >= 2 and any(values <= vocab for vocab in _LIKERT_VOCABULARIES):
+    if len(values) >= 2 and any(values <= set(scale) for scale in _LIKERT_SCALES):
         return {**signals, "suggested_type": "likert", "confidence": "high"}
 
     column_name = series.name.lower() if isinstance(series.name, str) else ""
@@ -150,3 +151,49 @@ def classify_columns(handle: dict) -> dict:
     df = handle["dataframe"]
     n_rows = len(df)
     return {col: _classify_column(df[col], n_rows) for col in df.columns}
+
+
+def infer_scale(handle: dict, col: str) -> dict:
+    """Suggest the point scale for one Likert item (docs/requirements.md
+    FR-9.2): how many points, the label->score map (low to high), and
+    whether it's reverse-coded, with a confidence and the signals behind
+    the guess. The caller (the agent) may override - this only proposes a
+    default, same as classify_columns.
+
+    Reverse-coding can't be told from a column's own values alone (it
+    depends on which way the item points relative to the construct it
+    belongs to, e.g. "felt confident" vs "felt nervous" in a stress
+    scale) - this always suggests False and leaves that judgment to the
+    caller, who can read the item's wording against its subscale.
+    """
+    series = handle["dataframe"][col]
+    non_null = series.dropna()
+
+    if pd.api.types.is_numeric_dtype(series):
+        points = sorted(non_null.unique().tolist())
+        return {
+            "n_points": len(points),
+            "label_to_score": {str(p): p for p in points},
+            "reverse_coded": False,
+            "confidence": "low",
+            "note": "Values are already numeric; assumed already on a score scale in ascending order.",
+        }
+
+    values_present = {str(v).strip().lower() for v in non_null.unique()}
+    for scale in _LIKERT_SCALES:
+        if values_present <= set(scale):
+            return {
+                "n_points": len(scale),
+                "label_to_score": {label: i + 1 for i, label in enumerate(scale)},
+                "reverse_coded": False,
+                "confidence": "high",
+                "note": "Matched a known Likert wording; label order treated as low-to-high.",
+            }
+
+    return {
+        "n_points": len(values_present),
+        "label_to_score": None,
+        "reverse_coded": None,
+        "confidence": "low",
+        "note": f"Unrecognized wording {sorted(values_present)}; decide the label order yourself after reading the item.",
+    }

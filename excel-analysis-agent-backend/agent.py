@@ -29,6 +29,11 @@ How it fits together:
   type - see FR-9.1/FR-9.3. The model can override any suggestion after
   reading the column itself. The result is stored in CLASSIFICATIONS so
   later steps (subscale grouping, scoring) can reuse it.
+- `infer_scale_tool` decides one Likert item's point count and
+  label->score map from its actual response values, plus a reverse-coding
+  flag the model must set itself (it can't be read off the values alone -
+  see FR-9.2). The result is stored in SCALES so later steps (scoring,
+  subscale reliability) can reuse it.
 """
 
 import math
@@ -42,7 +47,7 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
 from sandbox_tool import Runtime
-from tools import classify_columns, profile, read_excel, recommend_test
+from tools import classify_columns, infer_scale, profile, read_excel, recommend_test
 
 load_dotenv()
 
@@ -56,6 +61,11 @@ HANDLES: dict = {}
 # below) - the place later milestones (grouping, scoring) will read "which
 # columns are Likert items" from.
 CLASSIFICATIONS: dict = {}
+
+# Committed Likert scale per handle_id -> column (see infer_scale_tool
+# below) - the place later milestones (scoring, subscale reliability) will
+# read each item's point count, label->score map, and reverse-coding from.
+SCALES: dict = {}
 
 # The sandbox for this run, created the first time a tool needs it and
 # closed at the end of run() - see _get_sandbox()/_close_sandbox() below.
@@ -265,6 +275,59 @@ def classify_columns_tool(handle_id: str, overrides: dict[str, str] | None = Non
     return result
 
 
+@tool
+def infer_scale_tool(
+    handle_id: str,
+    col: str,
+    reverse_coded: bool | None = None,
+    label_to_score: dict[str, int] | None = None,
+) -> dict:
+    """Infer (or override) the point scale for one Likert item: how many
+    points, the label->score map, and whether it's reverse-coded.
+
+    Call once per Likert item (columns classify_columns_tool tagged
+    "likert") with no overrides to see a suggested scale from that item's
+    actual response values. Reverse-coding can't be inferred from the
+    values alone - it depends on how the item's wording points relative to
+    the construct it belongs to (e.g. "felt confident" is the reverse of
+    "felt nervous" in a stress scale) - so read the item and call again
+    with reverse_coded=True/False once you've judged it; do the same with
+    label_to_score if the wording wasn't recognized (confidence "low",
+    label_to_score None) or you disagree with the suggested order. Every
+    call commits the result as this item's scale for later scoring steps.
+
+    Args:
+        handle_id: the id returned by read_excel_tool.
+        col: the column name of the Likert item.
+        reverse_coded: override whether this item is reverse-scored.
+        label_to_score: override the label->score mapping, e.g.
+            {"never": 1, "sometimes": 2, "always": 3}.
+    """
+    if handle_id not in HANDLES:
+        return {"error": f"No file loaded with handle_id '{handle_id}'. Call read_excel_tool first."}
+    df = HANDLES[handle_id]
+    if col not in df.columns:
+        return {"error": f"No column '{col}' in handle '{handle_id}'."}
+
+    handle = {"handle_id": handle_id, "dataframe": df}
+    suggestion = _json_safe(infer_scale(handle, col))
+
+    result = SCALES.get(handle_id, {}).get(col, suggestion)
+    if reverse_coded is not None or label_to_score is not None:
+        result = {**result}
+        if reverse_coded is not None:
+            result["reverse_coded"] = reverse_coded
+        if label_to_score is not None:
+            result["label_to_score"] = label_to_score
+            result["n_points"] = len(label_to_score)
+        result["confidence"] = "overridden"
+    else:
+        result = suggestion
+
+    SCALES.setdefault(handle_id, {})[col] = result
+    return result
+
+
 # The model that decides which tool to call and when. gpt-4o-mini is cheap
 # and more than capable of this kind of tool-picking + summarizing task.
 model = ChatOpenAI(model="gpt-4o-mini")
@@ -281,23 +344,53 @@ SYSTEM_PROMPT = (
     "outcome does not). If it does, run one for real with run_code_tool "
     "(e.g. scipy.stats.shapiro) before calling recommend_test_tool - never "
     "assume normality. Then call recommend_test_tool to get the correct "
-    "test and function name - never pick one from memory. Run it with "
-    "run_code_tool (scipy.stats or statsmodels.api are both available), "
-    "and in your final answer state the test used, whether its assumptions "
+    "test and function name - never pick one from memory. You must then "
+    "actually run that exact test with run_code_tool (scipy.stats or "
+    "statsmodels.api are both available) and get a real statistic and "
+    "p-value back before writing your final answer. Naming the "
+    "recommended test without executing it is not a complete answer - "
+    "never tell the user a test 'would need to be run' or 'is "
+    "recommended' when run_code_tool is right there and available to you. "
+    "If a test needs a statsmodels formula (e.g. logit, ols), never put a "
+    "raw column name straight into the formula string - spreadsheet "
+    "headers often have spaces, punctuation, or question marks that break "
+    "formula syntax. Instead, rename every column involved (including the "
+    "outcome variable) to a short, plain identifier first, e.g. df = "
+    "df.rename(columns={'Have you been admitted to hospital for this "
+    "condition before?': 'admitted'}), then build the formula from the "
+    "new names. "
+    "In your final answer state the test used, whether its assumptions "
     "held, the statistic, the p-value, and what it means in plain language. "
     "If the file looks like a questionnaire/survey (many columns with a "
     "small set of repeated response options), call classify_columns_tool "
     "before analyzing it. Review the suggested type and confidence for "
     "each column; override any you disagree with. In your final answer, "
     "report the classification (grouped by type) with confidence, and "
-    "note any overrides with your reason."
+    "note any overrides with your reason. "
+    "For every column classified as likert, then call infer_scale_tool to "
+    "get its point count and label->score map. It never guesses "
+    "reverse-coding on its own - read the item's wording against the "
+    "other items it's grouped with and decide for yourself whether it "
+    "runs opposite to them, then call infer_scale_tool again with "
+    "reverse_coded set accordingly (if it already looks right, you can "
+    "still call again with reverse_coded=False to confirm it explicitly). "
+    "Also override label_to_score if confidence came back low. In your "
+    "final answer, report each item's scale and reverse-coding with your "
+    "reasoning."
 )
 
 # One call builds the whole "ask model -> run tool -> show result -> ask
 # again" loop for us (this is the "ReAct" agent pattern).
 agent_graph = create_agent(
     model,
-    tools=[read_excel_tool, profile_tool, run_code_tool, recommend_test_tool, classify_columns_tool],
+    tools=[
+        read_excel_tool,
+        profile_tool,
+        run_code_tool,
+        recommend_test_tool,
+        classify_columns_tool,
+        infer_scale_tool,
+    ],
     system_prompt=SYSTEM_PROMPT,
 )
 
@@ -312,6 +405,8 @@ def run(file_path: str, question: str) -> str:
     user_message = f"Analyze the file at this path: {file_path}\n\nQuestion: {question}"
 
     final_answer = ""
+    total_tokens = {"input": 0, "output": 0, "total": 0}
+    n_seen = 0
     try:
         # Passed inline (not pulled into a variable first) so the type
         # checker matches this dict literal against the exact shape
@@ -320,13 +415,45 @@ def run(file_path: str, question: str) -> str:
             {"messages": [{"role": "user", "content": user_message}]},
             stream_mode="values",
         ):
-            last_message = step["messages"][-1]
-            last_message.pretty_print()
+            # "values" mode yields the full accumulated message list after
+            # each graph step, not one message at a time. When the model
+            # makes several tool calls in one turn, langgraph runs them all
+            # in a single step and appends a ToolMessage per call - so
+            # printing only messages[-1] silently drops every result but
+            # the last one. Print/account for every message new since the
+            # last step instead.
+            messages = step["messages"]
+            new_messages = messages[n_seen:]
+            n_seen = len(messages)
 
-            is_final_answer = last_message.type == "ai" and not last_message.tool_calls
-            if is_final_answer:
-                final_answer = last_message.content
+            for message in new_messages:
+                message.pretty_print()
+
+                # Every AI message carries usage_metadata for that one LLM
+                # call (ChatOpenAI sets this); summing it across the trace
+                # gives the real token spend for the whole agent run, tool
+                # calls included.
+                usage = getattr(message, "usage_metadata", None)
+                if message.type == "ai" and usage:
+                    total_tokens["input"] += usage.get("input_tokens", 0)
+                    total_tokens["output"] += usage.get("output_tokens", 0)
+                    total_tokens["total"] += usage.get("total_tokens", 0)
+                    print(
+                        f"[tokens this call: {usage.get('input_tokens', 0)} in / "
+                        f"{usage.get('output_tokens', 0)} out -- "
+                        f"running total: {total_tokens['total']}]"
+                    )
+
+                is_final_answer = message.type == "ai" and not message.tool_calls
+                if is_final_answer:
+                    final_answer = message.content
     finally:
         _close_sandbox()
+
+    print(
+        f"\n=== Token usage ===\n"
+        f"input: {total_tokens['input']}, output: {total_tokens['output']}, "
+        f"total: {total_tokens['total']}"
+    )
 
     return final_answer

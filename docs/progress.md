@@ -73,6 +73,34 @@ Satisfies: FR-9.1, FR-9.3
   disagree...Strongly agree"): correctly classified every column in both,
   no overrides needed.
 
+### 6. Per-item Likert scale inference
+Satisfies: FR-9.2
+
+- `tools.py: infer_scale()` suggests one Likert item's point count and
+  label->score map from its actual response values (numeric columns get
+  an identity mapping at low confidence; text columns get matched against
+  the same built-in Likert wordings `classify_columns` uses, at high
+  confidence). It deliberately never guesses reverse-coding itself, since
+  that depends on how an item's wording points relative to the construct
+  it belongs to, not on the item's own values - that judgment is always
+  left to the caller.
+- `infer_scale_tool` in `agent.py` lets the agent override the scale or
+  set `reverse_coded` after reading the item's wording against its
+  subscale peers; the result is stored in `SCALES` (keyed by
+  handle_id -> column) for later steps (scoring, reliability) to reuse.
+- Verified end to end: the agent called `infer_scale_tool` once per
+  Likert item (10 items), correctly matched the known "Never...Very
+  often" wording each time, and made an explicit reverse-coded judgment
+  per item instead of leaving the default.
+- Fixed along the way: `run()`'s trace printer only showed the *last*
+  message per `agent_graph.stream(..., stream_mode="values")` step, which
+  silently dropped 9 of 10 tool results when the agent made parallel tool
+  calls in one turn (the model still saw all 10; only the printed trace
+  was misleading). Also tightened `SYSTEM_PROMPT` after catching the
+  agent name a recommended test (e.g. via `recommend_test_tool`) without
+  actually running it via `run_code_tool` and reporting a real
+  statistic/p-value.
+
 ## Not built yet
 
 - **FR-2**: parsing the analysis plan into an ordered, typed task list;
@@ -81,8 +109,6 @@ Satisfies: FR-9.1, FR-9.3
   issues like merged cells or multi-row headers.
 - **FR-4, FR-5, FR-6**: the memory tiers, context-budget tracking, and
   compression system.
-- **FR-9.2**: `infer_scale`, per-Likert-item scale and reverse-coding
-  detection.
 - **FR-9.4**: `group_items`, subscale grouping.
 - **FR-9.5, FR-9.6**: `score_items`, scoring plus Cronbach's alpha.
 - **FR-8**: written report/artifact output to a designated directory
