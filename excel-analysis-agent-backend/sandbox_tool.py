@@ -5,10 +5,16 @@ load_dotenv()
 
 
 class Runtime:
-    def __init__(self):
-        self.sandbox = Sandbox.create()
+    # E2B's default sandbox timeout is short (a few minutes) and is meant
+    # for one-off snippets, not a whole multi-step agent run sharing one
+    # sandbox (see agent.py) - a file with more Likert items means more
+    # tool calls and easily outlives that default, killing the sandbox
+    # mid-run with a TimeoutException. 20 minutes covers any run so far.
+    DEFAULT_TIMEOUT_SECONDS = 1200
 
-#
+    def __init__(self):
+        self.sandbox = Sandbox.create(timeout=self.DEFAULT_TIMEOUT_SECONDS)
+
     def upload_file(self, local_path: str, remote_path: str) -> None:
         with open(local_path, "rb") as file:
             self.sandbox.files.write(remote_path, file)

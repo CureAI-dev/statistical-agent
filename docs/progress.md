@@ -101,6 +101,55 @@ Satisfies: FR-9.2
   actually running it via `run_code_tool` and reporting a real
   statistic/p-value.
 
+### 7. Subscale grouping and scoring
+Satisfies: FR-9.4, FR-9.5, FR-9.6
+
+- `tools.py: group_items()` computes a pairwise correlation matrix across
+  a file's Likert items (using each item's already-committed scale from
+  `infer_scale`) as a signal for which items might share a construct.
+  Correlation can't say why items belong together or what to name the
+  group, so it never invents a grouping - that judgment is left entirely
+  to the caller, same division of labor as `infer_scale`'s reverse-coding.
+- `group_items_tool` in `agent_tools.py`: call with no `groups` to see the
+  correlation signal, call again with `groups={"name": [cols], ...}` (plus
+  optional `rationale`) to commit it to `GROUPS`. Requires every named
+  column to already have a committed scale.
+- `tools.py: score_items()` applies each item's committed label->score map
+  and reverse-coding, averages a group's items into one per-respondent
+  score, and computes Cronbach's alpha for the group.
+- `score_items_tool` writes the resulting `{group}_score` column(s) into
+  the working dataframe and re-uploads it to the sandbox at its existing
+  path, so `run_code_tool` sees the new column just by re-reading the CSV
+  - no hand-built recreation needed. The tool result spells out the exact
+  `score_column` name so the model can't typo or forget the `_score`
+  suffix.
+- Verified against three different files: the nurses file (single stress
+  subscale, Cronbach's alpha 0.811 after a prompt fix - see below);
+  the oncology file, which has *two* different Likert constructs mixed
+  into one sheet (a 12-item patient-satisfaction scale and the same
+  10-item stress scale) - the agent correctly split them into two
+  separate subscales instead of forcing one group; and a file with no raw
+  Likert items at all (pre-scored columns only), where `group_items_tool`
+  was correctly never invoked.
+- Fixed along the way: the model initially ignored `score_items_tool`'s
+  own output and hand-rebuilt the score itself with a case-sensitive label
+  map, producing silent zeros. Tightened `SYSTEM_PROMPT` to point at the
+  tool's `score_column` field and forbid recomputing it by hand. Also
+  caught the model retrying a raw-column-name-in-backticks statsmodels
+  formula five times in a row (backticks don't reliably survive a `?` in
+  the name either) instead of switching to renaming - prompt now rules out
+  backtick-quoting explicitly and says to switch strategy after one
+  failure, not repeat it.
+- Known limitation, not a code bug: the agent's own reverse-coding
+  judgment (from `infer_scale_tool`) is sometimes inconsistent across
+  runs, occasionally producing a low or negative Cronbach's alpha. The
+  tool correctly surfaces this (that's what alpha is for - see FR-9.6);
+  `SYSTEM_PROMPT` now tells the agent to re-examine and fix reverse-coding
+  when alpha comes back below ~0.5 before reporting, but a small model
+  doesn't always follow through. This is a model-judgment quality issue,
+  not something to paper over with a keyword heuristic (see the
+  architecture decision on reverse-coding under `infer_scale` above).
+
 ## Not built yet
 
 - **FR-2**: parsing the analysis plan into an ordered, typed task list;
@@ -109,8 +158,6 @@ Satisfies: FR-9.2
   issues like merged cells or multi-row headers.
 - **FR-4, FR-5, FR-6**: the memory tiers, context-budget tracking, and
   compression system.
-- **FR-9.4**: `group_items`, subscale grouping.
-- **FR-9.5, FR-9.6**: `score_items`, scoring plus Cronbach's alpha.
 - **FR-8**: written report/artifact output to a designated directory
   (currently the trace and answer just print to stdout).
 - **NFR-2, NFR-5**: a persisted, structured audit trail and token/step/
@@ -120,6 +167,20 @@ Satisfies: FR-9.2
 
 ## Architecture decisions made along the way
 
+- `agent.py` was refactored into four files once it grew past ~450 lines
+  mixing unrelated concerns: `prompts.py` (the system prompt), `store.py`
+  (the committed-state dicts - `HANDLES`, `CLASSIFICATIONS`, `SCALES`,
+  `GROUPS`, `SANDBOX_PATHS` - plus the `json_safe` helper), `agent_tools.py`
+  (every `@tool`-wrapped function and the sandbox lifecycle), and `agent.py`
+  itself, now just the model + `create_agent` wiring + `run()` (~110
+  lines). No new abstractions or config layers - same plain functions and
+  module-level dicts as before, just split by concern.
+- `sandbox_tool.py: Runtime` now passes an explicit 20-minute `timeout` to
+  `Sandbox.create()`. E2B's default is short and meant for one-off
+  snippets; a real survey analysis sharing one sandbox across many tool
+  calls (more Likert items = more calls) can outlive it, killing the
+  sandbox mid-run with a `TimeoutException` - caught while testing against
+  a 39-column file.
 - LLM: OpenAI (`gpt-4o-mini`), the user's choice over Anthropic.
 - Agent framework: LangChain's `create_agent` (originally built on the
   now-deprecated `create_react_agent`; migrated after LangChain flagged
@@ -135,7 +196,9 @@ Satisfies: FR-9.2
 ## Where to look
 
 - Full spec: `docs/requirements.md`.
-- Code: `excel-analysis-agent-backend/` (`agent.py` is the entry point for
-  the tool list and system prompt; `tools.py` holds the plain functions
-  each tool wraps).
+- Code: `excel-analysis-agent-backend/` - `agent.py` wires the model and
+  tools together and runs the loop; `agent_tools.py` has the `@tool`
+  wrappers; `prompts.py` has the system prompt; `store.py` has the
+  committed-state dicts; `tools.py` holds the plain functions each tool
+  wraps.
 - Claude Code's session guidelines: `CLAUDE.md` at the repo root.

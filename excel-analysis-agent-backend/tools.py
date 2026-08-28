@@ -197,3 +197,103 @@ def infer_scale(handle: dict, col: str) -> dict:
         "confidence": "low",
         "note": f"Unrecognized wording {sorted(values_present)}; decide the label order yourself after reading the item.",
     }
+
+
+def _score_series(series: pd.Series, scale: dict) -> pd.Series:
+    """Map one Likert item's raw responses to numeric scores using its
+    committed scale (from infer_scale), then reverse them if flagged.
+    Shared by group_items (needs numbers to correlate) and score_items
+    (needs numbers to average into a subscale)."""
+    if pd.api.types.is_numeric_dtype(series):
+        scored = series.astype(float)
+    else:
+        keyed = {str(k).strip().lower(): v for k, v in scale["label_to_score"].items()}
+        scored = series.astype(str).str.strip().str.lower().map(keyed)
+    if scale.get("reverse_coded"):
+        scored = (scale["n_points"] + 1) - scored
+    return scored
+
+
+def group_items(handle: dict, cols: list[str], scales: dict[str, dict]) -> dict:
+    """Suggest which Likert items might share a subscale, using their
+    pairwise correlation as a signal (docs/requirements.md FR-9.4).
+
+    Correlation can say two items move together; it can't say why, or what
+    to call the group they'd form - that needs reading the items' actual
+    wording, which is left entirely to the caller (same division of labor
+    as infer_scale's reverse_coded). This only computes a correlation
+    matrix over `cols`, using each item's already-committed entry in
+    `scales` (from infer_scale) to convert responses to numbers first.
+    Columns without a usable committed scale are skipped and reported back.
+    """
+    df = handle["dataframe"]
+    numeric = pd.DataFrame(index=df.index)
+    skipped = []
+    for col in cols:
+        scale = scales.get(col)
+        if not scale or not scale.get("label_to_score") or scale.get("reverse_coded") is None:
+            skipped.append(col)
+            continue
+        numeric[col] = _score_series(df[col], scale)
+
+    result = {
+        "correlation": numeric.corr().round(2).to_dict(),
+        "note": (
+            "Signal only: items that correlate strongly are candidates for "
+            "the same subscale, but only you can judge whether they share "
+            "a construct by reading their wording. Call group_items_tool "
+            "again with `groups` to commit your decision."
+        ),
+    }
+    if skipped:
+        result["skipped"] = skipped
+        result["skipped_reason"] = "No usable committed scale yet - call infer_scale_tool for these first."
+    return result
+
+
+def _cronbachs_alpha(item_scores: pd.DataFrame) -> float | None:
+    """Standard Cronbach's alpha: how well a group of items hangs together
+    as one scale, from k/(k-1) * (1 - sum of item variances / variance of
+    the summed score). Undefined for fewer than two items."""
+    k = item_scores.shape[1]
+    if k < 2:
+        return None
+    item_variance_sum = item_scores.var(axis=0, ddof=1).sum()
+    total_variance = item_scores.sum(axis=1).var(ddof=1)
+    if total_variance == 0:
+        return None
+    return round(float((k / (k - 1)) * (1 - item_variance_sum / total_variance)), 3)
+
+
+def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, dict]) -> dict:
+    """Compute a per-respondent subscale score (mean of each item's
+    reverse-coded score) and Cronbach's alpha for each group
+    (docs/requirements.md FR-9.5/FR-9.6).
+
+    Returns the new score column per group (as real pandas Series, for the
+    caller to write into the working dataframe) plus summary stats and
+    reliability - never the full per-respondent list, to keep the model's
+    context small.
+    """
+    df = handle["dataframe"]
+    new_columns: dict[str, pd.Series] = {}
+    summary: dict[str, dict] = {}
+
+    for group_name, cols in groups.items():
+        item_scores = pd.DataFrame({col: _score_series(df[col], scales[col]) for col in cols})
+        subscale_score = item_scores.mean(axis=1)
+        score_column = f"{group_name}_score"
+        new_columns[score_column] = subscale_score
+        summary[group_name] = {
+            # Spelled out explicitly (not left for the caller to
+            # reconstruct from group_name) so the model can't typo or
+            # forget the "_score" suffix when it goes to use this column.
+            "score_column": score_column,
+            "n_items": len(cols),
+            "columns": cols,
+            "cronbachs_alpha": _cronbachs_alpha(item_scores),
+            "mean": float(subscale_score.mean()),
+            "std": float(subscale_score.std()),
+        }
+
+    return {"new_columns": new_columns, "summary": summary}

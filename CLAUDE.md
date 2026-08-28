@@ -14,67 +14,83 @@ exact FR/NFR section each built piece satisfies, so check it before
 believing any "is X done" claim, including the summary below.
 
 ## Current state (as of Aug 2026)
-The core agent loop works and is verified against real sample files. Built
-so far:
-- `tools.py`: `read_excel()` and `profile()`, load a file into a pandas
-  dataframe and summarize it (shape, dtypes, nulls, sample rows).
+The core agent loop works and is verified against four real sample files
+(two 50-row surveys, a 292-row oncology-satisfaction survey mixing two
+different Likert constructs, and a 50-row file with no raw Likert items at
+all - already pre-scored). Built so far, by file:
+
+- `tools.py`: all the plain, LLM-judgment-free functions. `read_excel()`
+  and `profile()` load a file into a pandas dataframe and summarize it
+  (shape, dtypes, nulls, sample rows). `recommend_test()` implements the
+  FR-9.9 test-selection table (t-test, ANOVA, chi-square, correlation,
+  regression, ...) - a plain lookup, no LLM judgment. `classify_columns()`
+  (FR-9.1/FR-9.3) suggests a type per column (likert/categorical/
+  open_ended/identifier/continuous) from real signals. `infer_scale()`
+  (FR-9.2) suggests one Likert item's point count and label->score map,
+  but never guesses reverse-coding (that needs reading the item's wording
+  against its construct, which only the agent can do). `group_items()`
+  (FR-9.4) computes a correlation matrix across a file's Likert items as a
+  grouping *signal* - it never invents the actual grouping or names a
+  construct, same reasoning as reverse-coding. `score_items()` (FR-9.5/
+  FR-9.6) applies each item's committed scale + reverse-coding, averages a
+  group into one per-respondent score, and computes Cronbach's alpha.
 - `sandbox_tool.py`: `Runtime` class, wraps E2B's cloud sandbox so code
-  runs in an isolated container, not on the host machine. Also captures
-  the Jupyter-style auto-displayed value of a bare last expression, not
-  just explicit `print()` output.
-- `agent.py`: the actual agent. A LangChain `create_agent` ReAct loop with
-  six tools (`read_excel_tool`, `profile_tool`, `run_code_tool`,
-  `recommend_test_tool`, `classify_columns_tool`, `infer_scale_tool`). One
-  sandbox is shared per run so state persists across `run_code_tool`
-  calls, which lets it transform data step by step (FR-9.7). `statsmodels`
-  gets installed into the sandbox on startup (for the regression tests;
-  `scipy` is already there). LLM is OpenAI (`gpt-4o-mini`) via
-  `langchain_openai`. `run()`'s trace printer walks every message new
-  since the last stream step, not just the last one - `stream_mode=
-  "values"` batches parallel tool calls into one step with several new
-  `ToolMessage`s, so printing only the last message silently dropped the
-  rest of the trace (the model still saw them; only the printed log was
-  incomplete).
-- `recommend_test`: a plain, deterministic function in `tools.py` that
-  implements the FR-9.9 test-selection table (t-test, ANOVA, chi-square,
-  correlation, regression, ...). The lookup itself involves no LLM
-  judgment. The agent runs a real normality check via `run_code_tool`
-  first, then calls this to get the correct test name and function, then
-  executes it. Verified end to end: it ran a Shapiro-Wilk check, fixed its
-  own `NameError` from a wrong function name without help, then ran the
-  right t-test and reported the assumptions and results.
-- `classify_columns`: a function in `tools.py` (FR-9.1/FR-9.3) that
-  suggests a type per column (likert, categorical, open_ended, identifier,
-  continuous) from real signals: unique-value counts, top values, and
-  whether the values match a built-in list of common Likert wordings
-  (Never/Sometimes/Fairly often/Very often, Strongly disagree...Strongly
-  agree, etc). The agent can override any suggestion after reading a
-  column itself. Results land in `CLASSIFICATIONS` (agent.py, keyed by
-  handle_id) so later steps (grouping items into subscales, scoring) can
-  read them without re-deriving. Verified against two real files: it
-  correctly separated identifier/continuous/categorical/likert columns
-  and accepted the suggestions without needing an override on either.
-- `infer_scale`: a function in `tools.py` (FR-9.2) that suggests one
-  Likert item's point count and label->score map from its actual response
-  values (numeric columns get an identity mapping at low confidence; text
-  columns get matched against the same built-in Likert wordings
-  `classify_columns` uses, at high confidence). It never guesses
-  reverse-coding itself - that depends on how an item's wording points
-  relative to the construct it belongs to, not on the item's own values -
-  so the agent must judge it after reading the item against its subscale
-  peers. Results land in `SCALES` (agent.py, keyed by handle_id -> column).
-  Verified end to end: the agent called `infer_scale_tool` once per
-  Likert item across two runs, correctly matched the known wording each
-  time, and made an explicit reverse-coded call per item instead of
-  leaving the default.
+  runs in an isolated container, not on the host machine. Captures the
+  Jupyter-style auto-displayed value of a bare last expression, not just
+  explicit `print()` output. Passes an explicit 20-minute timeout to
+  `Sandbox.create()` - E2B's default is short and a longer survey analysis
+  (more Likert items = more tool calls sharing one sandbox) can outlive
+  it, which killed a run against the 39-column oncology file before this
+  fix.
+- `store.py`: the committed state every tool reads/writes, keyed by
+  handle_id (`HANDLES`, `CLASSIFICATIONS`, `SCALES`, `GROUPS`,
+  `SANDBOX_PATHS`), plus the `json_safe` helper that makes pandas/numpy
+  values safe to send back to the model.
+- `prompts.py`: the system prompt.
+- `agent_tools.py`: the `@tool`-wrapped versions of every `tools.py`
+  function, plus the sandbox lifecycle (`_get_sandbox`/`close_sandbox`).
+  This is the layer that keeps the raw DataFrame out of the model's
+  context (FR-3.1/FR-1.3) and makes sure data-processing code only runs in
+  the sandbox. `classify_columns_tool`, `infer_scale_tool`, and
+  `group_items_tool` all follow the same suggest-then-commit shape: call
+  once to see a signal-based suggestion, call again with the agent's own
+  judgment to override and commit it - later steps read the committed
+  result instead of re-deriving it. `score_items_tool` is the one tool
+  that mutates the working data: it writes the new `{group}_score`
+  column(s) into the dataframe and re-uploads it to the sandbox at the
+  same path, so `run_code_tool` picks it up just by re-reading the CSV.
+- `agent.py`: thin now (~110 lines) - just the model, the `create_agent`
+  wiring (eight tools total), and `run()`. LLM is OpenAI (`gpt-4o-mini`)
+  via `langchain_openai`. One sandbox is shared per run so state persists
+  across `run_code_tool` calls (FR-9.7). `statsmodels` gets installed into
+  the sandbox on startup (only `scipy` ships by default). `run()`'s trace
+  printer walks every message new since the last stream step, not just
+  the last one - `stream_mode="values"` batches parallel tool calls into
+  one step with several new `ToolMessage`s, so printing only the last
+  message silently dropped the rest of the trace (the model still saw
+  them; only the printed log was incomplete).
 - `main.py`: smoke test that runs the agent against one sample file.
 
-Survey-mode pipeline (FR-9.1-9.8), built one step at a time: column
-classification and per-item scale inference are done (above). Not built
-yet: group_items (subscale grouping), score_items (scoring + Cronbach's
-alpha). Also not built: memory system, context compression. Treat
-anything about those in requirements.md as a target, not a description of
-existing code.
+Verified end to end (see `docs/progress.md` for the full detail per
+function): `recommend_test` picked the right test after a real normality
+check and the agent self-corrected a `NameError` unaided; `classify_columns`
+correctly typed every column across different Likert wordings;
+`infer_scale` correctly matched known wordings and the agent made an
+explicit reverse-coded call per item; `group_items`/`score_items`
+correctly split two different Likert constructs (satisfaction vs. stress)
+into two subscales on the oncology file instead of forcing one group, and
+were correctly skipped on the file with no raw Likert items.
+
+Known limitation, not a code bug: the agent's own reverse-coding judgment
+is sometimes inconsistent across runs, occasionally producing a low or
+negative Cronbach's alpha. The tool correctly surfaces this - that's
+what alpha is for - but a small model (`gpt-4o-mini`) doesn't always loop
+back and fix it before reporting, even though the prompt asks it to.
+
+Survey-mode pipeline (FR-9.1-9.8) is now fully built (column
+classification, scale inference, grouping, scoring). Not built: memory
+system, context compression. Treat anything about those in
+requirements.md as a target, not a description of existing code.
 
 Open decision (see `docs/requirements.md` §10): whether the memory/
 context-compression milestone should use LangChain's `deepagents` package
@@ -89,8 +105,11 @@ Autonomus Agent/
 ├── docs/progress.md                  what's built vs. not, cited against the spec
 └── excel-analysis-agent-backend/     the code (Python, uv-managed)
     ├── main.py                       smoke test
-    ├── agent.py                      the agent: tools + create_agent loop
-    ├── tools.py                      file reading, profiling, test picker
+    ├── agent.py                      model + create_agent wiring + run()
+    ├── agent_tools.py                @tool wrappers + sandbox lifecycle
+    ├── prompts.py                    the system prompt
+    ├── store.py                      committed-state dicts + json_safe
+    ├── tools.py                      the plain, LLM-judgment-free functions
     ├── sandbox_tool.py               E2B sandbox wrapper
     ├── data/                         sample CSVs for testing
     └── .env                          API keys (never commit this)

@@ -12,11 +12,14 @@ QUESTION = (
     "First, classify every column as identifier, continuous, categorical, or Likert. "
     "For each Likert item, infer its point scale (points, label-to-score map) "
     "and decide whether it's reverse-coded relative to the other stress items. "
-    "Second, perform a chi-square test to see if there is a significant "
+    "Second, group the Likert items into subscale(s), compute each subscale's "
+    "score and Cronbach's alpha, and report whether the reliability is acceptable. "
+    "Third, perform a chi-square test to see if there is a significant "
     "association between 'Sex' and 'Have you been diagnosed with any long-term "
     "medical condition?'. "
-    "Third, run a logistic regression to predict 'Have you been admitted to hospital "
-    "for this condition before?' using 'Age', 'Sex', and 'Perceived Stress Score'. "
+    "Fourth, run a logistic regression to predict 'Have you been admitted to hospital "
+    "for this condition before?' using 'Age', 'Sex', and the computed stress subscale "
+    "score (not a hand-built average). "
     "Present the findings clearly."
 )
 
