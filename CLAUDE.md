@@ -14,10 +14,13 @@ exact FR/NFR section each built piece satisfies, so check it before
 believing any "is X done" claim, including the summary below.
 
 ## Current state (as of Aug 2026)
-The core agent loop works and is verified against four real sample files
+The core agent loop works and is verified against five real sample files
 (two 50-row surveys, a 292-row oncology-satisfaction survey mixing two
-different Likert constructs, and a 50-row file with no raw Likert items at
-all - already pre-scored). Built so far, by file:
+different Likert constructs, a 50-row file with no raw Likert items at
+all - already pre-scored, and a 184-row/61-column file with ~30 Likert
+items across three different scales - the largest tried, and the one
+that surfaced both the token-cost and retry-loop issues below). Built so
+far, by file:
 
 - `tools.py`: all the plain, LLM-judgment-free functions. `read_excel()`
   and `profile()` load a file into a pandas dataframe and summarize it
@@ -95,22 +98,33 @@ what alpha is for - but a small model (`gpt-4o-mini`) doesn't always loop
 back and fix it before reporting, even though the prompt asks it to.
 
 Survey-mode pipeline (FR-9.1-9.8) is now fully built (column
-classification, scale inference, grouping, scoring). Not built: memory
-system, context compression. Treat anything about those in
-requirements.md as a target, not a description of existing code.
+classification, scale inference, grouping, scoring). Not built: the
+persistent, cross-session part of the memory system (FR-4.3 - schemas/
+preferences/conclusions that survive between separate `uv run` calls).
+Treat anything about that in requirements.md as a target, not a
+description of existing code.
 
 Decided (see `docs/requirements.md` §10 and `docs/progress.md`,
-"Architecture decisions made along the way"): the memory/context-
-compression milestone uses LangChain's `deepagents` package (built-in
-planning + summarization) instead of hand-rolling it, and this has
-shipped (`agent.py` now uses `create_deep_agent`). Whether it actually
-helps is unverified - the 2026-08-30 re-verification run against the
-larger stress-test file got derailed by an unrelated retry-loop bug
-before the summarization trigger was ever reached, and separately, the
-per-call token sizes seen on every run so far (even that large file's
-74.4k max) stay well under half the ~109k trigger point, so the
-middleware may just not fit this project's actual workload shape. See
-`docs/progress.md` §7 for the detail.
+"Architecture decisions made along the way"): the in-session memory/
+context-compression milestone (FR-5/FR-6) uses LangChain's `deepagents`
+package (built-in summarization middleware) instead of hand-rolling it,
+and this has shipped (`agent.py` now uses `create_deep_agent`). Whether
+the compression itself actually helps is still unconfirmed - every run
+tried so far, even the 61-column stress-test file, stays well under half
+the ~109k token trigger needed to engage it, so the middleware has never
+actually turned on.
+
+**Real win from this same push, 2026-08-30**: a separate bug is fixed -
+the agent used to call `infer_scale_tool` repeatedly (up to 297 times in
+one run) against Likert items with unfamiliar wording instead of
+supplying an explicit `label_to_score` on retry. `SYSTEM_PROMPT` now
+forbids repeating that call unchanged and shows a worked example.
+Result: the 61-column stress-test file completed its full pipeline
+cleanly for the first time ever (classification, two subscales scored,
+chi-square, logistic regression, all numbers verified real) at 732,755
+tokens - down from 1,676,847 the prior attempt and from the original
+~1-1.2M baseline. That drop is from the retry-loop fix, not from
+compaction. See `docs/progress.md` §7 for the full detail.
 
 ## Structure
 ```
