@@ -78,10 +78,17 @@ register_harness_profile(
 # again" loop for us (this is the "ReAct" agent pattern), plus built-in
 # summarization middleware that compresses old messages once the
 # conversation gets long, instead of letting context grow unboundedly.
-# `backend=StateBackend()` keeps deepagents' virtual filesystem (used by its
-# built-in tools above) in graph state rather than on real disk - we don't
-# use it, but it's the default backend and being explicit here documents
-# that no host filesystem access is involved.
+# `backend=StateBackend()` matters for more than the excluded filesystem
+# tools above: the summarization middleware itself uses this exact backend
+# object (deepagents/graph.py passes it straight into
+# create_summarization_middleware(model, backend)) to offload messages it
+# evicts from context to a conversation-history file *before* summarizing
+# them, so they're not just discarded. StateBackend keeps that offloaded
+# file in graph state (in-memory), never written to real disk - which is
+# what this project needs, since the source spreadsheet and conversation
+# content must never touch the host filesystem. Swapping this for a
+# disk-backed backend (e.g. FilesystemBackend) would silently start writing
+# conversation history to disk.
 agent_graph = create_deep_agent(
     model=model,
     tools=[
