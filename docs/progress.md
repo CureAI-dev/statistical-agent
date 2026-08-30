@@ -294,6 +294,77 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
     run had found (it never separated out the sleep-disturbance items
     this time) - grouping quality still isn't perfectly consistent
     run-to-run, a known limitation noted above under `infer_scale`.
+  - **2026-08-30, compaction actually fixed and confirmed firing for
+    real**: root cause turned out to be three separate bugs stacked on
+    top of each other, not just "the threshold is too high":
+    1. `create_deep_agent`'s own default `SummarizationMiddleware`
+       really is unreachable as configured (85% of gpt-4o-mini's real
+       `max_input_tokens`, confirmed as 128,000 by reading
+       `ChatOpenAI(model="gpt-4o-mini").profile` directly - so the
+       threshold is ~109k, above every per-call size ever observed).
+       Fix: register our own `SummarizationMiddleware` with a much
+       lower fixed-token trigger (8,000) via `create_deep_agent`'s
+       `middleware=` argument, and exclude the unreachable default via
+       `HarnessProfile(excluded_middleware=...)`.
+    2. That exclusion is name-based, and a plain
+       `SummarizationMiddleware(...)` instance reports the exact same
+       `.name` as the built-in default (confirmed by reading
+       `deepagents/middleware/summarization.py`) - so excluding "the
+       default" silently excluded our replacement too, leaving zero
+       summarization middleware active (confirmed: 0 events on a run
+       whose real per-call tokens had already passed the trigger).
+       Fix: a one-line subclass (`_LowTriggerSummarization`), which
+       reports its own class name instead - deepagents' own docstring
+       says subclassing is the intended way to avoid this collision.
+    3. Even after fixing (1) and (2), summarization still didn't fire.
+       Directly calling the middleware's own internal methods
+       (`_should_summarize`, `_determine_cutoff_index`) on the real
+       conversation confirmed it *was* deciding to fire - `agent.py`'s
+       own detection code just wasn't seeing it. This version of
+       deepagents implements summarization via `wrap_model_call`, not
+       the older `before_model` hook: it only rewrites the *request*
+       sent to the model, and never inserts a summary message into
+       `state["messages"]` (confirmed by reading the middleware source
+       - the only real trace as previously used it left in graph state
+       is a private `_summarization_event` field). `agent.py` had been
+       watching for a summary-shaped `HumanMessage` in
+       `state["messages"]` - the older hook's behavior - so it could
+       never see a real firing event even when one happened. This also
+       retroactively explains an earlier crash during this same
+       debugging session: on one run (pre-detection-fix, pre-prompt-fix),
+       the agent called `read_excel_tool` on a path like
+       `/conversation_history/session_....md` and crashed with
+       "Unsupported file extension: .md" - concrete proof summarization
+       *was* firing even while the old detection code reported zero
+       events, and a sign the agent needs explicit guidance on which
+       tool recovers that file. Fixed both: `agent.py` now reads
+       `step["_summarization_event"]` directly (diffed against the last
+       seen event, since it persists across steps once set) instead of
+       scanning messages, and `SYSTEM_PROMPT` now tells the agent to use
+       `read_file` (never `read_excel_tool`, which errors on non-
+       spreadsheet paths) if it ever needs to reopen that file.
+       A fourth, smaller thing surfaced along the way: the default
+       `token_counter` (`count_tokens_approximately` with no `tools=`)
+       only estimates conversation text, not the token cost of the 8
+       tool schemas resent every call - a real gap given how much of
+       this project's real per-call cost is schema overhead. Fixed by
+       passing `token_counter=partial(count_tokens_approximately,
+       tools=tools)` so the middleware's own estimate tracks what the
+       model actually gets billed for, rather than just picking a lower
+       trigger number to paper over the undercount.
+    Verified end to end on the nurses file (cheapest sample) after all
+    four fixes: **4 real summarization events fired** in one run
+    (confirmed via the `_summarization_event` state field, each with a
+    real `cutoff_index` and `conversation_history/*.md` offload path,
+    not a text-pattern guess), the run completed with exit code 0 (no
+    crash), and the final answer's numbers (two subscales, Cronbach's
+    alpha 0.409 and 0.124, both correctly reported as poor reliability)
+    checked out against the real tool output - no fabrication. **This is
+    the first time in this project that context compaction has been
+    shown to actually engage**, closing out the open item from the
+    entries above. `results.json` now also records `summarization_events`
+    per run (NFR-5/FR-8 style observability, alongside step count and
+    tool latency).
 
 ### 8. Report and artifact output
 Satisfies: FR-8.1, FR-8.2, FR-8.3; partially contributes to NFR-2
@@ -380,17 +451,21 @@ Satisfies: NFR-5
 - Memory/context-compression milestone framework (`requirements.md` §10):
   decided - adopted LangChain's `deepagents` package (`create_deep_agent`)
   instead of hand-rolling planning/summarization, rather than leaving it
-  undecided. Shipped in `agent.py`. Whether it actually delivers a
-  benefit is a separate, still-open question: the 2026-08-30
-  re-verification (§7 above) is inconclusive because an unrelated
-  retry-loop bug derailed the run before the summarization trigger was
-  ever reached, and, more fundamentally, that trigger (~109k tokens, 85%
-  of `gpt-4o-mini`'s context window) sits well above every per-call token
-  size this project has actually produced, even on its largest file
-  (74.4k max). So this isn't just "untested" - at the library's default
-  threshold, the middleware is structurally unlikely to engage for this
-  project's workload at all. Lowering the threshold and re-testing is a
-  deliberate follow-up, not done here.
+  undecided. Shipped in `agent.py`. **2026-08-30, resolved**: replaced
+  `create_deep_agent`'s own default `SummarizationMiddleware` (unreachable
+  at its ~109k-token default trigger) with a custom lower-triggered one,
+  registered through `middleware=` + a harness-profile exclusion of the
+  default. Getting this working also required a one-line subclass (to
+  dodge a `.name`-based exclusion collision between the default and the
+  replacement) and fixing `agent.py`'s own detection code, which had been
+  watching for a message shape (`before_model`'s summary `HumanMessage`)
+  that this version of deepagents' `wrap_model_call`-based implementation
+  never produces - the real signal is a private `_summarization_event`
+  state field. See §7 above for the full account and verification (4 real
+  events fired in one run, confirmed via that state field, no crash, real
+  non-fabricated numbers in the final answer). Compaction is now confirmed
+  to actually engage on this project, closing out what had been an open
+  question since the `deepagents` swap.
 
 ## Where to look
 
