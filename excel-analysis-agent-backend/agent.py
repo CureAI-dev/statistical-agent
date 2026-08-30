@@ -10,6 +10,8 @@ questions about it by calling tools, instead of us hardcoding the steps.
 - `store.py` holds the committed state each tool reads/writes (loaded
   files, column classifications, Likert scales, subscale groupings).
 - `prompts.py` holds the system prompt.
+- `report.py` writes each run's report/trace/results to disk once it's
+  done (FR-8) - before this, they only ever printed to the terminal.
 - This file just wires the model + tools into `create_deep_agent`'s loop
   (ask the model what to do -> run the tool it picked -> show it the
   result -> ask again -> ... -> until it just answers in plain text) and
@@ -21,10 +23,14 @@ questions about it by calling tools, instead of us hardcoding the steps.
   1-1.2M tokens with no compression at all.
 """
 
+from pathlib import Path
+
 from dotenv import load_dotenv
 from deepagents import HarnessProfile, create_deep_agent, register_harness_profile
 from deepagents.backends import StateBackend
 from langchain_openai import ChatOpenAI
+
+from report import write_outputs
 
 from agent_tools import (
     classify_columns_tool,
@@ -117,13 +123,17 @@ def run(file_path: str, question: str) -> str:
     """Ask the agent to analyze `file_path` and answer `question`.
 
     Prints each step (tool calls, tool results, final answer) as it
-    happens, so you can watch the agent's reasoning trace live. Returns the
-    final plain-English answer.
+    happens, so you can watch the agent's reasoning trace live, and writes
+    the report/trace/results to outputs/<handle_id>/<timestamp>/ once done
+    (FR-8) so they survive after the process exits. Returns the final
+    plain-English answer.
     """
+    handle_id = Path(file_path).stem
     user_message = f"Analyze the file at this path: {file_path}\n\nQuestion: {question}"
 
     final_answer = ""
     total_tokens = {"input": 0, "output": 0, "total": 0}
+    trace_lines: list[str] = []
     n_seen = 0
     try:
         # Passed inline (not pulled into a variable first) so the type
@@ -146,6 +156,7 @@ def run(file_path: str, question: str) -> str:
 
             for message in new_messages:
                 message.pretty_print()
+                trace_lines.append(message.pretty_repr())
 
                 # Every AI message carries usage_metadata for that one LLM
                 # call (ChatOpenAI sets this); summing it across the trace
@@ -156,11 +167,13 @@ def run(file_path: str, question: str) -> str:
                     total_tokens["input"] += usage.get("input_tokens", 0)
                     total_tokens["output"] += usage.get("output_tokens", 0)
                     total_tokens["total"] += usage.get("total_tokens", 0)
-                    print(
+                    tokens_line = (
                         f"[tokens this call: {usage.get('input_tokens', 0)} in / "
                         f"{usage.get('output_tokens', 0)} out -- "
                         f"running total: {total_tokens['total']}]"
                     )
+                    print(tokens_line)
+                    trace_lines.append(tokens_line)
 
                 is_final_answer = message.type == "ai" and not message.tool_calls
                 if is_final_answer:
@@ -173,5 +186,8 @@ def run(file_path: str, question: str) -> str:
         f"input: {total_tokens['input']}, output: {total_tokens['output']}, "
         f"total: {total_tokens['total']}"
     )
+
+    output_dir = write_outputs(handle_id, final_answer, trace_lines, total_tokens)
+    print(f"\n=== Outputs written to {output_dir} ===")
 
     return final_answer

@@ -11,3 +11,6 @@ wheels/
 
 # Secrets
 .env
+
+# Generated per-run outputs (FR-8) - not source
+outputs/
