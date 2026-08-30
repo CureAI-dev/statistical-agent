@@ -23,11 +23,14 @@ questions about it by calling tools, instead of us hardcoding the steps.
   1-1.2M tokens with no compression at all.
 """
 
+from functools import partial
 from pathlib import Path
 
 from dotenv import load_dotenv
 from deepagents import HarnessProfile, create_deep_agent, register_harness_profile
 from deepagents.backends import StateBackend
+from deepagents.middleware import SummarizationMiddleware
+from langchain_core.messages.utils import count_tokens_approximately
 from langchain_openai import ChatOpenAI
 
 from report import write_outputs
@@ -70,6 +73,18 @@ model = ChatOpenAI(model="gpt-4o-mini")
 # is process-wide and keyed by provider, not by this specific agent
 # instance - a second OpenAI-backed create_deep_agent() built elsewhere in
 # the same process would silently inherit this exact exclusion set too.
+#
+# excluded_middleware drops create_deep_agent's own default summarization
+# middleware (see docs/progress.md section 7): that default picks its
+# trigger from the model's profile (`compute_summarization_defaults` in
+# deepagents/middleware/summarization.py), 85% of gpt-4o-mini's real
+# max_input_tokens (128,000, confirmed by reading `ChatOpenAI(model=
+# "gpt-4o-mini").profile`) = ~109k. Every run measured so far, even the
+# largest 61-column file, has topped out around 74.4k tokens for its
+# single biggest call - so that default never actually fires. We register
+# our own SummarizationMiddleware below instead (summarization_middleware),
+# with a trigger far below observed per-call sizes, so compaction can
+# actually engage.
 register_harness_profile(
     "openai",
     HarnessProfile(
@@ -84,39 +99,86 @@ register_harness_profile(
                 "execute",
                 "task",
             }
-        )
+        ),
+        excluded_middleware=frozenset({"SummarizationMiddleware"}),
     ),
 )
 
+# Shared by both create_deep_agent (below) and our custom summarization
+# middleware - they must be the same object, since the middleware offloads
+# evicted messages to this exact backend before summarizing them.
+# StateBackend keeps that offloaded file in graph state (in-memory), never
+# written to real disk - what this project needs, since the source
+# spreadsheet and conversation content must never touch the host
+# filesystem. Swapping this for a disk-backed backend (e.g.
+# FilesystemBackend) would silently start writing conversation history to
+# disk.
+backend = StateBackend()
+
+# Shared by both create_deep_agent (below) and the token counter passed to
+# the summarization middleware.
+tools = [
+    read_excel_tool,
+    profile_tool,
+    run_code_tool,
+    recommend_test_tool,
+    classify_columns_tool,
+    infer_scale_tool,
+    group_items_tool,
+    score_items_tool,
+]
+
+# The default token_counter (count_tokens_approximately with no tools=)
+# only estimates the conversation text - it doesn't count the token cost
+# of the tool schemas resent on every single call. With 8 tools, that's a
+# real chunk of every real request that the trigger below would otherwise
+# never see, which is exactly why the first attempt at this fix (trigger=
+# 8000, default counter) still logged 0 summarization events on a run
+# whose real per-call input tokens (OpenAI's own count, from
+# usage_metadata) had already passed 8000. Passing tools= here makes the
+# estimate track what the model actually gets billed for.
+token_counter = partial(count_tokens_approximately, tools=tools)
+
+# A plain SummarizationMiddleware(...) instance would report the same
+# .name ("SummarizationMiddleware") as create_deep_agent's own default
+# instance - deepagents/middleware/summarization.py hardcodes that name for
+# any instance of the exact base class. That means excluded_middleware=
+# {"SummarizationMiddleware"} above would silently drop BOTH the default
+# AND this one (confirmed by an actual run: 0 summarization events fired
+# even after conversation size clearly passed the trigger below). A
+# subclass reports its own class name instead, so excluding the default by
+# its name leaves this one alone - deepagents' own docstring notes
+# subclasses are meant to be used this way for exactly this reason.
+class _LowTriggerSummarization(SummarizationMiddleware):
+    """Same as SummarizationMiddleware, just under a different .name so
+    excluding the built-in default doesn't also exclude this one."""
+
+
+# trigger is a fixed token count, not create_deep_agent's default fraction-
+# of-context-window, chosen well below every per-call size actually
+# observed on real runs (max seen so far: 74.4k) so it can engage instead
+# of sitting unreachable. keep=("messages", 6) matches the same fallback
+# deepagents itself uses for models without profile info
+# (compute_summarization_defaults' non-profile branch) - a reasonable, not
+# invented, number of recent messages to always leave intact.
+summarization_middleware = _LowTriggerSummarization(
+    model=model,
+    backend=backend,
+    trigger=("tokens", 8000),
+    keep=("messages", 6),
+    token_counter=token_counter,
+)
+
 # One call builds the whole "ask model -> run tool -> show result -> ask
-# again" loop for us (this is the "ReAct" agent pattern), plus built-in
-# summarization middleware that compresses old messages once the
+# again" loop for us (this is the "ReAct" agent pattern), plus the
+# summarization middleware above for compressing old messages once the
 # conversation gets long, instead of letting context grow unboundedly.
-# `backend=StateBackend()` matters for more than the excluded filesystem
-# tools above: the summarization middleware itself uses this exact backend
-# object (deepagents/graph.py passes it straight into
-# create_summarization_middleware(model, backend)) to offload messages it
-# evicts from context to a conversation-history file *before* summarizing
-# them, so they're not just discarded. StateBackend keeps that offloaded
-# file in graph state (in-memory), never written to real disk - which is
-# what this project needs, since the source spreadsheet and conversation
-# content must never touch the host filesystem. Swapping this for a
-# disk-backed backend (e.g. FilesystemBackend) would silently start writing
-# conversation history to disk.
 agent_graph = create_deep_agent(
     model=model,
-    tools=[
-        read_excel_tool,
-        profile_tool,
-        run_code_tool,
-        recommend_test_tool,
-        classify_columns_tool,
-        infer_scale_tool,
-        group_items_tool,
-        score_items_tool,
-    ],
+    tools=tools,
     system_prompt=SYSTEM_PROMPT,
-    backend=StateBackend(),
+    backend=backend,
+    middleware=[summarization_middleware],
 )
 
 
@@ -141,6 +203,8 @@ def run(file_path: str, question: str) -> str:
     final_answer = ""
     total_tokens = {"input": 0, "output": 0, "total": 0}
     step_count = 0
+    summarization_events = 0
+    last_summarization_event = None
     trace_lines: list[str] = []
     n_seen = 0
     try:
@@ -161,6 +225,31 @@ def run(file_path: str, question: str) -> str:
             messages = step["messages"]
             new_messages = messages[n_seen:]
             n_seen = len(messages)
+
+            # A real compaction event, not a text-pattern guess (past
+            # attempts to detect this by grepping the trace for words like
+            # "summary" produced false positives - see docs/progress.md
+            # section 7). This version of deepagents' summarization
+            # middleware works through wrap_model_call, not the older
+            # before_model hook - it never inserts a summary message into
+            # state["messages"] (confirmed by reading
+            # deepagents/middleware/summarization.py - only the *request*
+            # sent to the model is modified). The one place it does persist
+            # something to graph state is the private "_summarization_event"
+            # field (cutoff_index/summary_message/file_path) - compare it to
+            # the last one seen to count only genuinely new events, since it
+            # stays present in state across every later step once set.
+            current_event = step.get("_summarization_event")
+            if current_event is not None and current_event != last_summarization_event:
+                last_summarization_event = current_event
+                summarization_events += 1
+                event_line = (
+                    f"[summarization fired - event #{summarization_events}, "
+                    f"cutoff_index={current_event.get('cutoff_index')}, "
+                    f"file_path={current_event.get('file_path')}]"
+                )
+                print(event_line)
+                trace_lines.append(event_line)
 
             for message in new_messages:
                 message.pretty_print()
@@ -205,9 +294,16 @@ def run(file_path: str, question: str) -> str:
         f"\n=== Steps: {step_count} LLM turns, {len(TOOL_CALLS)} tool calls ===\n"
         + "\n".join(f"  {name}: {seconds:.2f}s total" for name, seconds in tool_seconds.items())
     )
+    print(f"\n=== Summarization events: {summarization_events} ===")
 
     output_dir = write_outputs(
-        handle_id, final_answer, trace_lines, total_tokens, step_count, list(TOOL_CALLS)
+        handle_id,
+        final_answer,
+        trace_lines,
+        total_tokens,
+        step_count,
+        list(TOOL_CALLS),
+        summarization_events,
     )
     print(f"\n=== Outputs written to {output_dir} ===")
 

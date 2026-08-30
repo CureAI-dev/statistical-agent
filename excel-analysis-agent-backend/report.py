@@ -20,6 +20,7 @@ def write_outputs(
     token_usage: dict,
     step_count: int,
     tool_calls: list[dict],
+    summarization_events: int = 0,
 ) -> Path:
     """Write one run's report, trace, and structured results to
     outputs/<handle_id>/<timestamp>/. Returns the directory written to.
@@ -30,7 +31,8 @@ def write_outputs(
     NFR-2's auditability, though the full audit-trail requirement is
     broader than this). results.json is the actual committed numbers
     behind the prose - classifications, scales, groups, scores, token
-    usage, step count, and per-tool-call latency (NFR-5) - so every claim
+    usage, step count, per-tool-call latency (NFR-5), and how many times
+    context summarization actually fired - so every claim
     in report.md can be checked against a real computation instead of
     just the prose text (FR-8.2/FR-8.3).
     """
@@ -49,6 +51,7 @@ def write_outputs(
         "token_usage": token_usage,
         "step_count": step_count,
         "tool_calls": tool_calls,
+        "summarization_events": summarization_events,
     }
     (run_dir / "results.json").write_text(json.dumps(json_safe(results), indent=2))
 
