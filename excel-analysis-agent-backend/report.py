@@ -13,7 +13,14 @@ from store import CLASSIFICATIONS, GROUPS, SCALES, json_safe
 OUTPUTS_DIR = Path(__file__).parent / "outputs"
 
 
-def write_outputs(handle_id: str, final_answer: str, trace_lines: list[str], token_usage: dict) -> Path:
+def write_outputs(
+    handle_id: str,
+    final_answer: str,
+    trace_lines: list[str],
+    token_usage: dict,
+    step_count: int,
+    tool_calls: list[dict],
+) -> Path:
     """Write one run's report, trace, and structured results to
     outputs/<handle_id>/<timestamp>/. Returns the directory written to.
 
@@ -22,9 +29,10 @@ def write_outputs(handle_id: str, final_answer: str, trace_lines: list[str], tok
     persisted instead of lost when the process exits (contributes to
     NFR-2's auditability, though the full audit-trail requirement is
     broader than this). results.json is the actual committed numbers
-    behind the prose - classifications, scales, groups, scores - so every
-    claim in report.md can be checked against a real computation instead
-    of just the prose text (FR-8.2/FR-8.3).
+    behind the prose - classifications, scales, groups, scores, token
+    usage, step count, and per-tool-call latency (NFR-5) - so every claim
+    in report.md can be checked against a real computation instead of
+    just the prose text (FR-8.2/FR-8.3).
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = OUTPUTS_DIR / handle_id / timestamp
@@ -39,6 +47,8 @@ def write_outputs(handle_id: str, final_answer: str, trace_lines: list[str], tok
         "scales": SCALES.get(handle_id),
         "groups": GROUPS.get(handle_id),
         "token_usage": token_usage,
+        "step_count": step_count,
+        "tool_calls": tool_calls,
     }
     (run_dir / "results.json").write_text(json.dumps(json_safe(results), indent=2))
 

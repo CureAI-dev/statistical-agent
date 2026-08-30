@@ -15,15 +15,22 @@ score_items_tool is the one tool that mutates the working data: once it
 computes a subscale score, it writes the new column into the in-memory
 dataframe and re-uploads it to the sandbox at the same path, so the next
 run_code_tool call picks it up just by re-reading the CSV.
+
+Every tool below is wrapped with @_timed (applied under @tool, so it
+times the plain function before @tool turns it into a schema) recording
+each call's wall-clock time into store.TOOL_CALLS - NFR-5's per-tool
+latency requirement.
 """
 
+import functools
 import tempfile
+import time
 from pathlib import Path
 
 from langchain_core.tools import tool
 
 from sandbox_tool import Runtime
-from store import CLASSIFICATIONS, GROUPS, HANDLES, SANDBOX_PATHS, SCALES, json_safe
+from store import CLASSIFICATIONS, GROUPS, HANDLES, SANDBOX_PATHS, SCALES, TOOL_CALLS, json_safe
 from tools import (
     classify_columns,
     group_items,
@@ -64,6 +71,25 @@ def close_sandbox() -> None:
         _sandbox = None
 
 
+def _timed(func):
+    """Record each tool call's wall-clock time into store.TOOL_CALLS
+    (NFR-5's "tool latency" requirement). Applied under @tool (not above
+    it) so it wraps the plain function @tool sees - functools.wraps keeps
+    the name/docstring/signature intact, which is what @tool reads to
+    build the schema the model sees; wrapping the other way around would
+    just time the already-built StructuredTool object instead."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        try:
+            return func(*args, **kwargs)
+        finally:
+            TOOL_CALLS.append({"tool": func.__name__, "seconds": round(time.perf_counter() - start, 3)})
+
+    return wrapper
+
+
 def _truncate(text: str) -> str:
     """Cap tool output before it enters the model's context (FR-5.3) -
     without this, a long print() from the model's own code could blow the
@@ -75,6 +101,7 @@ def _truncate(text: str) -> str:
 
 
 @tool
+@_timed
 def read_excel_tool(path: str, sheet: str | int = 0) -> dict:
     """Load an Excel or CSV file so it can be analyzed.
 
@@ -108,6 +135,7 @@ def read_excel_tool(path: str, sheet: str | int = 0) -> dict:
 
 
 @tool
+@_timed
 def profile_tool(handle_id: str) -> dict:
     """Inspect a previously loaded file: column types, null counts, basic
     numeric stats, and a few sample rows.
@@ -125,6 +153,7 @@ def profile_tool(handle_id: str) -> dict:
 
 
 @tool
+@_timed
 def run_code_tool(code: str) -> dict:
     """Run Python code in a sandbox to compute, filter, or transform data -
     pandas and numpy are available. Use this for anything profile_tool
@@ -150,6 +179,7 @@ def run_code_tool(code: str) -> dict:
 
 
 @tool
+@_timed
 def recommend_test_tool(
     question_type: str,
     is_normal: bool = True,
@@ -183,6 +213,7 @@ def recommend_test_tool(
 
 
 @tool
+@_timed
 def classify_columns_tool(handle_id: str, overrides: dict[str, str] | None = None) -> dict:
     """Classify every column in a loaded file as likert, categorical,
     open_ended, identifier, or continuous.
@@ -221,6 +252,7 @@ def classify_columns_tool(handle_id: str, overrides: dict[str, str] | None = Non
 
 
 @tool
+@_timed
 def infer_scale_tool(
     handle_id: str,
     col: str,
@@ -274,6 +306,7 @@ def infer_scale_tool(
 
 
 @tool
+@_timed
 def group_items_tool(
     handle_id: str,
     groups: dict[str, list[str]] | None = None,
@@ -333,6 +366,7 @@ def group_items_tool(
 
 
 @tool
+@_timed
 def score_items_tool(handle_id: str, groups: list[str] | None = None) -> dict:
     """Compute each committed subscale's per-respondent score and
     Cronbach's alpha, and write the new score column(s) into the working

@@ -36,6 +36,12 @@ SCALES: dict = {}
 # place score_items_tool reads "which items make up which subscale" from.
 GROUPS: dict = {}
 
+# Every tool call this run, in order, with its wall-clock time (see
+# agent_tools.py's _timed decorator) - NFR-5's "tool latency" observability
+# requirement. agent.py's run() clears this at the start of each call, so
+# calling run() more than once in the same process doesn't mix runs.
+TOOL_CALLS: list = []
+
 
 def json_safe(value: Any) -> Any:
     """

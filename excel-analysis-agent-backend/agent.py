@@ -44,6 +44,7 @@ from agent_tools import (
     score_items_tool,
 )
 from prompts import SYSTEM_PROMPT
+from store import TOOL_CALLS
 
 load_dotenv()
 
@@ -125,14 +126,21 @@ def run(file_path: str, question: str) -> str:
     Prints each step (tool calls, tool results, final answer) as it
     happens, so you can watch the agent's reasoning trace live, and writes
     the report/trace/results to outputs/<handle_id>/<timestamp>/ once done
-    (FR-8) so they survive after the process exits. Returns the final
-    plain-English answer.
+    (FR-8) so they survive after the process exits. Also tracks step count
+    and per-tool latency (NFR-5) alongside the existing token counting.
+    Returns the final plain-English answer.
     """
     handle_id = Path(file_path).stem
     user_message = f"Analyze the file at this path: {file_path}\n\nQuestion: {question}"
 
+    # Cleared here (not just at module load) so calling run() more than
+    # once in the same process doesn't mix this run's tool latencies with
+    # a previous one's.
+    TOOL_CALLS.clear()
+
     final_answer = ""
     total_tokens = {"input": 0, "output": 0, "total": 0}
+    step_count = 0
     trace_lines: list[str] = []
     n_seen = 0
     try:
@@ -164,6 +172,7 @@ def run(file_path: str, question: str) -> str:
                 # calls included.
                 usage = getattr(message, "usage_metadata", None)
                 if message.type == "ai" and usage:
+                    step_count += 1
                     total_tokens["input"] += usage.get("input_tokens", 0)
                     total_tokens["output"] += usage.get("output_tokens", 0)
                     total_tokens["total"] += usage.get("total_tokens", 0)
@@ -187,7 +196,19 @@ def run(file_path: str, question: str) -> str:
         f"total: {total_tokens['total']}"
     )
 
-    output_dir = write_outputs(handle_id, final_answer, trace_lines, total_tokens)
+    # Per-tool latency, aggregated from every call this run recorded via
+    # agent_tools.py's @_timed decorator (NFR-5).
+    tool_seconds: dict[str, float] = {}
+    for call in TOOL_CALLS:
+        tool_seconds[call["tool"]] = tool_seconds.get(call["tool"], 0.0) + call["seconds"]
+    print(
+        f"\n=== Steps: {step_count} LLM turns, {len(TOOL_CALLS)} tool calls ===\n"
+        + "\n".join(f"  {name}: {seconds:.2f}s total" for name, seconds in tool_seconds.items())
+    )
+
+    output_dir = write_outputs(
+        handle_id, final_answer, trace_lines, total_tokens, step_count, list(TOOL_CALLS)
+    )
     print(f"\n=== Outputs written to {output_dir} ===")
 
     return final_answer
