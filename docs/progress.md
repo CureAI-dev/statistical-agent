@@ -149,6 +149,38 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
   doesn't always follow through. This is a model-judgment quality issue,
   not something to paper over with a keyword heuristic (see the
   architecture decision on reverse-coding under `infer_scale` above).
+- Stress-tested against a fourth, much larger file (184 rows, 61 columns,
+  ~30 Likert items across three different scales stacked together -
+  perceived stress, a 21-item anxiety/mood scale, and an 11-item sleep-
+  disturbance scale). The agent correctly split all three into separate
+  subscales (one run got a clean 0.913 Cronbach's alpha on the anxiety
+  scale). This surfaced two real problems, one fixed and one still open:
+  - **Fixed - fabricated result**: when the logistic regression's
+    statsmodels formula kept failing, one run's final answer stated a
+    specific chi-square p-value anyway, despite the same answer noting
+    the statistic itself "was not computed due to issues with column
+    access" - a fabricated number, not an honest failure report.
+    `SYSTEM_PROMPT` now opens with a hard rule: never state a number that
+    didn't come from an actual tool result this conversation; report a
+    failed computation as failed instead. Re-verified against the same
+    file afterward: the same class of failure (logistic regression
+    couldn't get a working formula) was reported honestly with no
+    invented numbers, and a chi-square that did succeed was double-checked
+    against the raw tool output to confirm the reported figures were real.
+  - **Still open, not yet fixed**: total token cost for this file was
+    ~1-1.2M tokens (vs. ~50-150k for the smaller files) - roughly 10-20x
+    more for about 3x more Likert items. Every LLM call resends the whole
+    conversation so far with no compression, which is exactly what the
+    not-yet-built memory system (FR-4-6) is for. Related: the agent
+    reloads the CSV fresh with `pd.read_csv(sandbox_path)` in nearly every
+    `run_code_tool` call instead of reusing the sandbox's persisted `df`,
+    and re-cleans column names with a slightly different scheme each time
+    (inconsistent case-folding, punctuation stripping) - so a name it
+    "remembers" from an earlier cell often doesn't match the fresh
+    reload, causing repeated `KeyError`/`PatsyError` failures (10-20 per
+    run on this file). Not yet fixed; a likely candidate is telling the
+    agent explicitly to reuse the persisted `df` and rename once, or to
+    verify a rename actually took before building on it.
 
 ## Not built yet
 
