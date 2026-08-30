@@ -407,19 +407,69 @@ Satisfies: NFR-5
   `run_code_tool` ~11.2s total) - confirmed matching in both the printed
   summary and `results.json`.
 
+### 8. Chunked reads and structural-issue detection
+Satisfies: FR-1.4, FR-1.5 (partial - see scope note below)
+
+- `tools.py: read_excel()` now checks file size before reading
+  (`LARGE_FILE_BYTES`, 50MB). Under that, behavior is unchanged. Over it,
+  CSVs are read via `pd.read_csv(..., chunksize=CHUNK_ROWS)` and
+  concatenated, so peak memory grows chunk by chunk instead of all at
+  once. Oversized Excel files raise a clear error instead of trying and
+  failing later - pandas has no chunked Excel reader, so streaming Excel
+  reads are out of scope for now (confirmed acceptable: no real oversized
+  Excel file exists yet).
+- `tools.py: _read_csv()` also fixes FR-1.5's encoding case: tries UTF-8,
+  falls back to Latin-1 on `UnicodeDecodeError`. Which one worked is
+  reported back as `encoding_used`.
+- `tools.py: _detect_structural_issues()` is new, called from
+  `read_excel()`. Split by how safe a fix is, same suggest-then-commit
+  division already used for `classify_columns`/`infer_scale`/
+  `group_items`: blank rows are dropped outright (no judgment call
+  needed, count reported as `blank_rows_dropped`), while merged cells
+  (via openpyxl) and a possible multi-row header are only flagged, never
+  auto-fixed - deciding how to handle those needs the same kind of
+  judgment as reverse-coding. The multi-row-header signal checks for
+  `Unnamed: N` column names (pandas' own tell for a blank header cell,
+  typical when only the left cell of a merged group carries text), not a
+  guess based on row values.
+- `agent_tools.py: read_excel_tool` surfaces `structural_issues` (and
+  `encoding_used`, when not `utf-8`) in its result, and `prompts.py` was
+  updated so the agent knows to read and act on them before analyzing.
+- Fixed along the way: if `read_excel()` dropped blank rows or used a
+  non-UTF-8 encoding, the host-side DataFrame no longer matched the raw
+  bytes `read_excel_tool` was uploading to the sandbox - `run_code_tool`
+  would have silently seen stale junk rows or hit the same encoding error
+  pandas had already worked around. Fixed by re-uploading the cleaned
+  DataFrame to the sandbox path instead of the raw file, the same
+  temp-file-then-upload pattern `score_items_tool` already used.
+- **Scope note, decided with the user during brainstorming**: chunking
+  covers only the read + profile step; `classify_columns`/`infer_scale`/
+  `group_items`/`score_items` still assume a fully-loaded DataFrame in
+  `HANDLES`, unchanged - revisit only if a real large file makes that the
+  actual bottleneck. FR-1.5's junk-row handling covers fully-blank rows
+  only, not footer/total rows - no real messy file exists yet to validate
+  a broader heuristic against.
+- Verified with synthetic files (no real large/messy file existed to test
+  against): a mid-file blank row correctly dropped and counted; a
+  Latin-1-encoded file correctly decoded via fallback; a forced small
+  `LARGE_FILE_BYTES` threshold correctly triggered the chunked path (200
+  rows read correctly); an oversized `.xlsx` correctly rejected with a
+  clear error; an `.xlsx` with a merged header cell correctly reported
+  both `merged_cells` and `possible_multi_row_header`.
+
 ## Not built yet
 
 - **FR-2**: parsing the analysis plan into an ordered, typed task list;
   asking a clarifying question by default when the plan is ambiguous.
-- **FR-1.4, FR-1.5**: chunked reads for large files; detecting structural
-  issues like merged cells or multi-row headers.
 - **FR-4.3**: persistent long-term memory across separate runs (schemas,
   cleaning routines, preferences, prior conclusions surviving between
   separate `uv run` invocations). The in-session part (FR-5/FR-6,
   context-budget tracking and compression) has shipped via `deepagents` -
   see section 7 above - though its actual benefit remains unconfirmed.
-- **NFR-1, NFR-4, NFR-6**: deterministic re-runs, chunking for large
-  files, and formal retry-with-backoff on tool failure.
+- **NFR-1, NFR-6**: deterministic re-runs and formal retry-with-backoff on
+  tool failure. NFR-4 (chunking for large files) is now partially covered
+  by section 8's read-step chunking, scoped down to just the read +
+  profile step - see that section's scope note.
 
 ## Architecture decisions made along the way
 
