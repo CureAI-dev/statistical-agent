@@ -79,6 +79,9 @@ far, by file:
   several new `ToolMessage`s, so printing only the last message silently
   dropped the rest of the trace (the model still saw them; only the
   printed log was incomplete).
+- `report.py`: writes each run's `report.md`/`trace.log`/`results.json`
+  to `outputs/<handle_id>/<timestamp>/` once `run()` finishes (FR-8) - no
+  new dependency, no flag, happens automatically every run.
 - `main.py`: smoke test that runs the agent against one sample file.
 
 Verified end to end (see `docs/progress.md` for the full detail per
@@ -139,7 +142,9 @@ Autonomus Agent/
     ├── prompts.py                    the system prompt
     ├── store.py                      committed-state dicts + json_safe
     ├── tools.py                      the plain, LLM-judgment-free functions
+    ├── report.py                     writes per-run report/trace/results
     ├── sandbox_tool.py               E2B sandbox wrapper
+    ├── outputs/                      generated per-run outputs (gitignored)
     ├── data/                         sample CSVs for testing
     └── .env                          API keys (never commit this)
 ```

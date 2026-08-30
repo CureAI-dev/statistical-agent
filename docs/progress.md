@@ -295,18 +295,40 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
     this time) - grouping quality still isn't perfectly consistent
     run-to-run, a known limitation noted above under `infer_scale`.
 
+### 8. Report and artifact output
+Satisfies: FR-8.1, FR-8.2, FR-8.3; partially contributes to NFR-2
+
+- `report.py: write_outputs()` writes `outputs/<handle_id>/<timestamp>/`
+  per run: `report.md` (the final plain-language answer), `trace.log`
+  (the exact tool-call/tool-result record, not just printed and lost),
+  and `results.json` (the actual committed classifications/scales/groups/
+  token-usage from `store.py` - the real numbers behind the prose, not
+  just readable in trace text).
+- `agent.py: run()` captures each message's `pretty_repr()` into a trace
+  list as it prints, and calls `write_outputs()` at the end. No new
+  dependency, no config flag - happens automatically every run, matching
+  the spec's "MUST" wording.
+- Verified on the nurses file: `report.md` matches the printed final
+  answer, `trace.log` matches the printed trace exactly, `results.json`
+  has the real numbers (22 classifications, 10 scales, 1 committed group,
+  real token counts).
+- Contributes to but doesn't fully satisfy NFR-2 (auditability): a
+  per-run trace file now persists, but there's no structured, queryable
+  audit trail across runs - each run is just its own folder.
+
 ## Not built yet
 
 - **FR-2**: parsing the analysis plan into an ordered, typed task list;
   asking a clarifying question by default when the plan is ambiguous.
 - **FR-1.4, FR-1.5**: chunked reads for large files; detecting structural
   issues like merged cells or multi-row headers.
-- **FR-4, FR-5, FR-6**: the memory tiers, context-budget tracking, and
-  compression system.
-- **FR-8**: written report/artifact output to a designated directory
-  (currently the trace and answer just print to stdout).
-- **NFR-2, NFR-5**: a persisted, structured audit trail and token/step/
-  latency metrics (currently only the printed trace).
+- **FR-4.3**: persistent long-term memory across separate runs (schemas,
+  cleaning routines, preferences, prior conclusions surviving between
+  separate `uv run` invocations). The in-session part (FR-5/FR-6,
+  context-budget tracking and compression) has shipped via `deepagents` -
+  see section 7 above - though its actual benefit remains unconfirmed.
+- **NFR-5**: token/step/latency metrics beyond the printed token summary
+  (step count and per-tool latency aren't tracked).
 - **NFR-1, NFR-4, NFR-6**: deterministic re-runs, chunking for large
   files, and formal retry-with-backoff on tool failure.
 
@@ -359,5 +381,5 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
   tools together and runs the loop; `agent_tools.py` has the `@tool`
   wrappers; `prompts.py` has the system prompt; `store.py` has the
   committed-state dicts; `tools.py` holds the plain functions each tool
-  wraps.
+  wraps; `report.py` writes each run's output files.
 - Claude Code's session guidelines: `CLAUDE.md` at the repo root.
