@@ -316,6 +316,26 @@ Satisfies: FR-8.1, FR-8.2, FR-8.3; partially contributes to NFR-2
   per-run trace file now persists, but there's no structured, queryable
   audit trail across runs - each run is just its own folder.
 
+### 9. Step count and per-tool latency
+Satisfies: NFR-5
+
+- `agent_tools.py: _timed` decorator, applied under `@tool` (not above
+  it, so it times the plain function `@tool` reads to build its schema -
+  `functools.wraps` keeps the name/docstring/signature intact for that)
+  on all 8 tools. Records `{tool, seconds}` into `store.py: TOOL_CALLS`
+  per call.
+- `agent.py: run()` counts one step per LLM turn (reusing the existing
+  token-counting loop - no separate pass needed), clears `TOOL_CALLS` at
+  the start of each call so repeat `run()` calls in one process don't mix
+  runs, and prints a step/tool-latency summary alongside the token
+  summary.
+- `report.py`'s `results.json` now also carries `step_count` and
+  `tool_calls`, so these numbers are persisted per run, not just printed.
+- Verified on the nurses file: 13 LLM turns, 24 tool calls, real per-tool
+  timings (`read_excel_tool` ~16.6s including sandbox startup,
+  `run_code_tool` ~11.2s total) - confirmed matching in both the printed
+  summary and `results.json`.
+
 ## Not built yet
 
 - **FR-2**: parsing the analysis plan into an ordered, typed task list;
@@ -327,8 +347,6 @@ Satisfies: FR-8.1, FR-8.2, FR-8.3; partially contributes to NFR-2
   separate `uv run` invocations). The in-session part (FR-5/FR-6,
   context-budget tracking and compression) has shipped via `deepagents` -
   see section 7 above - though its actual benefit remains unconfirmed.
-- **NFR-5**: token/step/latency metrics beyond the printed token summary
-  (step count and per-tool latency aren't tracked).
 - **NFR-1, NFR-4, NFR-6**: deterministic re-runs, chunking for large
   files, and formal retry-with-backoff on tool failure.
 

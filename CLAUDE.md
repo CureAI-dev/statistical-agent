@@ -47,8 +47,9 @@ far, by file:
   fix.
 - `store.py`: the committed state every tool reads/writes, keyed by
   handle_id (`HANDLES`, `CLASSIFICATIONS`, `SCALES`, `GROUPS`,
-  `SANDBOX_PATHS`), plus the `json_safe` helper that makes pandas/numpy
-  values safe to send back to the model.
+  `SANDBOX_PATHS`), `TOOL_CALLS` (every tool call this run with its
+  wall-clock time, NFR-5), plus the `json_safe` helper that makes pandas/
+  numpy values safe to send back to the model.
 - `prompts.py`: the system prompt.
 - `agent_tools.py`: the `@tool`-wrapped versions of every `tools.py`
   function, plus the sandbox lifecycle (`_get_sandbox`/`close_sandbox`).
@@ -62,6 +63,9 @@ far, by file:
   that mutates the working data: it writes the new `{group}_score`
   column(s) into the dataframe and re-uploads it to the sandbox at the
   same path, so `run_code_tool` picks it up just by re-reading the CSV.
+  Every tool is also wrapped with `_timed` (applied under `@tool`, so it
+  times the plain function `@tool` reads to build its schema) recording
+  each call into `store.TOOL_CALLS`.
 - `agent.py`: ~170 lines - the model, the `deepagents.create_deep_agent`
   wiring (eight of our own tools, plus that package's built-in
   summarization middleware for compressing old messages once a
@@ -78,7 +82,10 @@ far, by file:
   `stream_mode="values"` batches parallel tool calls into one step with
   several new `ToolMessage`s, so printing only the last message silently
   dropped the rest of the trace (the model still saw them; only the
-  printed log was incomplete).
+  printed log was incomplete). Also counts one step per LLM turn and
+  prints a per-tool latency summary from `store.TOOL_CALLS` (NFR-5),
+  clearing that list at the start of each call so repeat `run()` calls in
+  one process don't mix runs.
 - `report.py`: writes each run's `report.md`/`trace.log`/`results.json`
   to `outputs/<handle_id>/<timestamp>/` once `run()` finishes (FR-8) - no
   new dependency, no flag, happens automatically every run.
