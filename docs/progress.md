@@ -271,6 +271,29 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
     doing so would also be the first real test of whether the
     `deepagents` compaction fix helps, now that the thing blocking a
     clean run is out of the way.
+  - **2026-08-30, re-run after the retry-loop fix**: ran the same file
+    again. First time this file has ever completed the full pipeline
+    cleanly - classification, two subscales committed (Perceived Stress,
+    alpha 0.429, poor; Anxiety, alpha 0.914, good), chi-square
+    (χ²=1.91, p=0.167), and a logistic regression (via sklearn this time,
+    accuracy 56.8%). All three numeric results independently checked
+    against their raw tool outputs - real, not fabricated.
+    `infer_scale_tool` called 52 times (vs. 297 before) - the retry loop
+    is gone. Total cost **732,755 tokens**, down from 1,676,847 last
+    attempt and from the original ~1-1.2M baseline - a real, large drop.
+    But: the drop is entirely explained by the retry loop being gone
+    (fewer wasted calls), not by compaction. Checked again: max per-call
+    input was 42,350, still well under the ~109k trigger, and no genuine
+    summarization/compaction marker appears in the log (the same false
+    positives as before - "numeric_summary" JSON key, "Analysis Summary"
+    heading). **The deepagents compaction fix still has not been shown to
+    do anything on this project** - every run so far, on every file
+    tried, stays well under half the threshold needed to engage it. One
+    quality note (not a regression, likely just LLM variance): this run
+    only formed 2 subscales instead of the 3 a much earlier, incomplete
+    run had found (it never separated out the sleep-disturbance items
+    this time) - grouping quality still isn't perfectly consistent
+    run-to-run, a known limitation noted above under `infer_scale`.
 
 ## Not built yet
 
