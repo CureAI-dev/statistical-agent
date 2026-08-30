@@ -59,16 +59,23 @@ all - already pre-scored). Built so far, by file:
   that mutates the working data: it writes the new `{group}_score`
   column(s) into the dataframe and re-uploads it to the sandbox at the
   same path, so `run_code_tool` picks it up just by re-reading the CSV.
-- `agent.py`: thin now (~110 lines) - just the model, the `create_agent`
-  wiring (eight tools total), and `run()`. LLM is OpenAI (`gpt-4o-mini`)
-  via `langchain_openai`. One sandbox is shared per run so state persists
-  across `run_code_tool` calls (FR-9.7). `statsmodels` gets installed into
-  the sandbox on startup (only `scipy` ships by default). `run()`'s trace
-  printer walks every message new since the last stream step, not just
-  the last one - `stream_mode="values"` batches parallel tool calls into
-  one step with several new `ToolMessage`s, so printing only the last
-  message silently dropped the rest of the trace (the model still saw
-  them; only the printed log was incomplete).
+- `agent.py`: ~170 lines - the model, the `deepagents.create_deep_agent`
+  wiring (eight of our own tools, plus that package's built-in
+  summarization middleware for compressing old messages once a
+  conversation gets long), a harness-profile registration that excludes
+  the deepagents built-in filesystem/subagent tools this project doesn't
+  need (`ls`, `write_file`, `edit_file`, `delete`, `glob`, `grep`,
+  `execute`, `task` - `read_file` stays available so the summarization
+  middleware's own message-offload/recovery path still works), and
+  `run()`. LLM is OpenAI (`gpt-4o-mini`) via `langchain_openai`. One
+  sandbox is shared per run so state persists across `run_code_tool`
+  calls (FR-9.7). `statsmodels` gets installed into the sandbox on
+  startup (only `scipy` ships by default). `run()`'s trace printer walks
+  every message new since the last stream step, not just the last one -
+  `stream_mode="values"` batches parallel tool calls into one step with
+  several new `ToolMessage`s, so printing only the last message silently
+  dropped the rest of the trace (the model still saw them; only the
+  printed log was incomplete).
 - `main.py`: smoke test that runs the agent against one sample file.
 
 Verified end to end (see `docs/progress.md` for the full detail per
@@ -92,10 +99,18 @@ classification, scale inference, grouping, scoring). Not built: memory
 system, context compression. Treat anything about those in
 requirements.md as a target, not a description of existing code.
 
-Open decision (see `docs/requirements.md` §10): whether the memory/
-context-compression milestone should use LangChain's `deepagents` package
-(built-in planning + summarization) instead of hand-rolling it. Not decided
-yet; evaluate when we get there.
+Decided (see `docs/requirements.md` §10 and `docs/progress.md`,
+"Architecture decisions made along the way"): the memory/context-
+compression milestone uses LangChain's `deepagents` package (built-in
+planning + summarization) instead of hand-rolling it, and this has
+shipped (`agent.py` now uses `create_deep_agent`). Whether it actually
+helps is unverified - the 2026-08-30 re-verification run against the
+larger stress-test file got derailed by an unrelated retry-loop bug
+before the summarization trigger was ever reached, and separately, the
+per-call token sizes seen on every run so far (even that large file's
+74.4k max) stay well under half the ~109k trigger point, so the
+middleware may just not fit this project's actual workload shape. See
+`docs/progress.md` §7 for the detail.
 
 ## Structure
 ```
@@ -105,7 +120,7 @@ Autonomus Agent/
 ├── docs/progress.md                  what's built vs. not, cited against the spec
 └── excel-analysis-agent-backend/     the code (Python, uv-managed)
     ├── main.py                       smoke test
-    ├── agent.py                      model + create_agent wiring + run()
+    ├── agent.py                      model + create_deep_agent wiring + run()
     ├── agent_tools.py                @tool wrappers + sandbox lifecycle
     ├── prompts.py                    the system prompt
     ├── store.py                      committed-state dicts + json_safe

@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "deepagents",
+    "deepagents>=0.7.11,<0.8",
     "e2b-code-interpreter>=2.9.1",
     "langchain>=1.3.17",
     "langchain-openai>=1.6.0",

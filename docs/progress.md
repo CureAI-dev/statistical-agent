@@ -19,12 +19,15 @@ Satisfies: FR-1.1, FR-1.2, FR-1.3
 ### 2. Core agentic loop
 Satisfies: FR-7.1 (partial, see "Not built yet")
 
-- `agent.py` uses LangChain's `create_agent` (the ReAct pattern): observe
-  the state, decide which tool to call (or stop), act, observe the
-  result, repeat.
+- `agent.py` uses `deepagents.create_deep_agent` (originally LangChain's
+  `create_agent`, swapped 2026-08-30 - see "Architecture decisions"
+  below), the ReAct pattern: observe the state, decide which tool to
+  call (or stop), act, observe the result, repeat, plus that package's
+  built-in summarization middleware for compressing old messages once a
+  conversation gets long.
 - LLM is OpenAI `gpt-4o-mini` via `langchain_openai`.
-- `create_agent`'s built-in `remaining_steps` already gives a step-cap
-  guardrail (FR-7.3) with no extra code needed.
+- The underlying ReAct loop's built-in `remaining_steps` already gives a
+  step-cap guardrail (FR-7.3) with no extra code needed.
 
 ### 3. Sandboxed code execution
 Satisfies: FR-3.3, NFR-3
@@ -236,6 +239,21 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
     would need a run that actually completes the full task (or a smaller
     context-window model, or a lower trigger threshold) to find out
     whether compaction engages once triggered - that's still unverified.
+    **Sharper framing, on closer look:** "unverified" understates it.
+    The library's default trigger (~109k tokens, 85% of `gpt-4o-mini`'s
+    ~128k window) was already unreachable by this project's actual
+    workload even before the retry-loop derailment - the *original*
+    pre-fix baseline's largest single call only reached ~57k tokens
+    (see the earlier baseline note above), and this re-verification
+    run's max (74.4k) is still well under half the trigger. Every run
+    observed so far, including on the largest file tried, stays well
+    under half the threshold needed to ever engage the middleware. So
+    the honest state isn't "we haven't tested it enough to know" - it's
+    "as configured, this doesn't fit the actual shape of this project's
+    per-call token sizes, independent of whether a run finishes
+    cleanly." Lowering the trigger threshold and re-testing would need
+    another expensive run and is a deliberate follow-up decision for
+    later, not done as part of this note.
     Given the cost of this run, no immediate re-run is planned; revisit
     if/when the retry-loop behavior above gets addressed.
 
@@ -261,9 +279,11 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
   (the committed-state dicts - `HANDLES`, `CLASSIFICATIONS`, `SCALES`,
   `GROUPS`, `SANDBOX_PATHS` - plus the `json_safe` helper), `agent_tools.py`
   (every `@tool`-wrapped function and the sandbox lifecycle), and `agent.py`
-  itself, now just the model + `create_agent` wiring + `run()` (~110
-  lines). No new abstractions or config layers - same plain functions and
-  module-level dicts as before, just split by concern.
+  itself, now just the model + agent-framework wiring + `run()` (~110
+  lines at the time of that split; ~170 after the `create_deep_agent`
+  swap below added the harness-profile tool exclusion). No new
+  abstractions or config layers - same plain functions and module-level
+  dicts as before, just split by concern.
 - `sandbox_tool.py: Runtime` now passes an explicit 20-minute `timeout` to
   `Sandbox.create()`. E2B's default is short and meant for one-off
   snippets; a real survey analysis sharing one sandbox across many tool
@@ -273,14 +293,26 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
 - LLM: OpenAI (`gpt-4o-mini`), the user's choice over Anthropic.
 - Agent framework: LangChain's `create_agent` (originally built on the
   now-deprecated `create_react_agent`; migrated after LangChain flagged
-  the deprecation).
+  the deprecation), then swapped again on 2026-08-30 for `deepagents`'
+  `create_deep_agent` (see below) once the memory/context-compression
+  milestone was reached.
 - Sandbox: E2B (`e2b_code_interpreter`), hand-rolled wrapper. No official
   LangChain+E2B integration exists, and LangChain's own sandbox package
   (Pyodide-based) is archived and deprecated.
-- Open decision (`requirements.md` §10): whether the future memory/
-  context-compression milestone should use LangChain's `deepagents`
-  package instead of hand-rolling it. Not decided; revisit at that
-  milestone.
+- Memory/context-compression milestone framework (`requirements.md` §10):
+  decided - adopted LangChain's `deepagents` package (`create_deep_agent`)
+  instead of hand-rolling planning/summarization, rather than leaving it
+  undecided. Shipped in `agent.py`. Whether it actually delivers a
+  benefit is a separate, still-open question: the 2026-08-30
+  re-verification (§7 above) is inconclusive because an unrelated
+  retry-loop bug derailed the run before the summarization trigger was
+  ever reached, and, more fundamentally, that trigger (~109k tokens, 85%
+  of `gpt-4o-mini`'s context window) sits well above every per-call token
+  size this project has actually produced, even on its largest file
+  (74.4k max). So this isn't just "untested" - at the library's default
+  threshold, the middleware is structurally unlikely to engage for this
+  project's workload at all. Lowering the threshold and re-testing is a
+  deliberate follow-up, not done here.
 
 ## Where to look
 

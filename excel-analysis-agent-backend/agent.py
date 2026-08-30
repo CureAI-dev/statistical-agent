@@ -47,21 +47,28 @@ model = ChatOpenAI(model="gpt-4o-mini")
 
 # deepagents ships a default tool suite of its own (ls/read_file/write_file/
 # edit_file/delete/glob/grep for a virtual filesystem, execute for shell
-# commands, task for subagents) that this project doesn't use - we already
-# have our own file-reading (read_excel_tool) and code-running (run_code_tool,
-# sandboxed) tools. There's no `excluded_tools=` kwarg on create_deep_agent
+# commands, task for subagents) that this project mostly doesn't use - we
+# already have our own file-reading (read_excel_tool) and code-running
+# (run_code_tool, sandboxed) tools. We exclude all of them except
+# `read_file`: the summarization middleware below offloads messages it
+# evicts from context to a virtual file *before* summarizing them, and its
+# summary points the agent back at that file - if `read_file` were also
+# excluded, the agent would have no way to recover the offloaded detail
+# when it needed it. There's no `excluded_tools=` kwarg on create_deep_agent
 # itself; exclusion is configured by registering a "harness profile" keyed to
 # the model's provider ("openai" here, inferred from the ChatOpenAI instance)
 # before building the agent. A middleware then strips these names from the
 # tool list sent to the model on every call, so they don't cost schema tokens
-# even though they're still technically registered.
+# even though they're still technically registered. Note this registration
+# is process-wide and keyed by provider, not by this specific agent
+# instance - a second OpenAI-backed create_deep_agent() built elsewhere in
+# the same process would silently inherit this exact exclusion set too.
 register_harness_profile(
     "openai",
     HarnessProfile(
         excluded_tools=frozenset(
             {
                 "ls",
-                "read_file",
                 "write_file",
                 "edit_file",
                 "delete",
@@ -121,7 +128,7 @@ def run(file_path: str, question: str) -> str:
     try:
         # Passed inline (not pulled into a variable first) so the type
         # checker matches this dict literal against the exact shape
-        # create_agent expects, instead of just inferring "some dict".
+        # create_deep_agent expects, instead of just inferring "some dict".
         for step in agent_graph.stream(
             {"messages": [{"role": "user", "content": user_message}]},
             stream_mode="values",
