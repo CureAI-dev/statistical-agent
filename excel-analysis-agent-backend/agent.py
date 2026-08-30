@@ -10,14 +10,20 @@ questions about it by calling tools, instead of us hardcoding the steps.
 - `store.py` holds the committed state each tool reads/writes (loaded
   files, column classifications, Likert scales, subscale groupings).
 - `prompts.py` holds the system prompt.
-- This file just wires the model + tools into `create_agent`'s loop (ask
-  the model what to do -> run the tool it picked -> show it the result ->
-  ask again -> ... -> until it just answers in plain text) and runs it,
-  printing the trace and token usage as it goes.
+- This file just wires the model + tools into `create_deep_agent`'s loop
+  (ask the model what to do -> run the tool it picked -> show it the
+  result -> ask again -> ... -> until it just answers in plain text) and
+  runs it, printing the trace and token usage as it goes.
+  `create_deep_agent` (from the `deepagents` package) is the same kind of
+  ReAct tool-calling loop `create_agent` gave us, plus a built-in
+  summarization middleware that compresses old messages out of context
+  once the conversation gets long - fixes runs on big files ballooning to
+  1-1.2M tokens with no compression at all.
 """
 
 from dotenv import load_dotenv
-from langchain.agents import create_agent
+from deepagents import HarnessProfile, create_deep_agent, register_harness_profile
+from deepagents.backends import StateBackend
 from langchain_openai import ChatOpenAI
 
 from agent_tools import (
@@ -39,10 +45,45 @@ load_dotenv()
 # and more than capable of this kind of tool-picking + summarizing task.
 model = ChatOpenAI(model="gpt-4o-mini")
 
+# deepagents ships a default tool suite of its own (ls/read_file/write_file/
+# edit_file/delete/glob/grep for a virtual filesystem, execute for shell
+# commands, task for subagents) that this project doesn't use - we already
+# have our own file-reading (read_excel_tool) and code-running (run_code_tool,
+# sandboxed) tools. There's no `excluded_tools=` kwarg on create_deep_agent
+# itself; exclusion is configured by registering a "harness profile" keyed to
+# the model's provider ("openai" here, inferred from the ChatOpenAI instance)
+# before building the agent. A middleware then strips these names from the
+# tool list sent to the model on every call, so they don't cost schema tokens
+# even though they're still technically registered.
+register_harness_profile(
+    "openai",
+    HarnessProfile(
+        excluded_tools=frozenset(
+            {
+                "ls",
+                "read_file",
+                "write_file",
+                "edit_file",
+                "delete",
+                "glob",
+                "grep",
+                "execute",
+                "task",
+            }
+        )
+    ),
+)
+
 # One call builds the whole "ask model -> run tool -> show result -> ask
-# again" loop for us (this is the "ReAct" agent pattern).
-agent_graph = create_agent(
-    model,
+# again" loop for us (this is the "ReAct" agent pattern), plus built-in
+# summarization middleware that compresses old messages once the
+# conversation gets long, instead of letting context grow unboundedly.
+# `backend=StateBackend()` keeps deepagents' virtual filesystem (used by its
+# built-in tools above) in graph state rather than on real disk - we don't
+# use it, but it's the default backend and being explicit here documents
+# that no host filesystem access is involved.
+agent_graph = create_deep_agent(
+    model=model,
     tools=[
         read_excel_tool,
         profile_tool,
@@ -54,6 +95,7 @@ agent_graph = create_agent(
         score_items_tool,
     ],
     system_prompt=SYSTEM_PROMPT,
+    backend=StateBackend(),
 )
 
 
