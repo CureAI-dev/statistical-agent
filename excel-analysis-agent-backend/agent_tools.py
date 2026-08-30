@@ -110,28 +110,53 @@ def read_excel_tool(path: str, sheet: str | int = 0) -> dict:
     handle_id, and a sandbox_path) - not the actual data. Pass the
     handle_id to other tools to refer to this file without reloading it.
 
+    The result also carries structural_issues, if any were found: blank
+    rows are already dropped (no action needed), but merged_cells or
+    possible_multi_row_header are only flagged, not fixed - read what's
+    reported and decide how to handle it yourself (e.g. re-reading with a
+    different header row via run_code_tool) before analyzing the file.
+
     Args:
         path: path to the .xlsx/.xls/.xlsm/.csv file.
         sheet: sheet name or index, for Excel files (ignored for CSV).
     """
     loaded = read_excel(path, sheet)
     handle_id = loaded["handle_id"]
-    HANDLES[handle_id] = loaded["dataframe"]
+    df = loaded["dataframe"]
+    HANDLES[handle_id] = df
 
-    # Also upload the file into the sandbox so run_code_tool can load it
-    # directly - this uploaded copy is the "working copy" the requirements
-    # doc calls for; the original file on disk is never touched.
+    # Upload into the sandbox so run_code_tool can load it directly - the
+    # "working copy" the requirements doc calls for; the original file on
+    # disk is never touched. Normally that's just the raw file bytes, but
+    # if read_excel() dropped blank rows or fell back to a non-UTF-8
+    # encoding, the host df no longer matches those raw bytes - upload the
+    # cleaned df instead so run_code_tool doesn't see stale junk rows or
+    # hit the same encoding error pandas already worked around.
     sandbox_path = f"/home/user/{handle_id}{Path(path).suffix}"
-    _get_sandbox().upload_file(path, sandbox_path)
+    needs_reupload = loaded["structural_issues"].get("blank_rows_dropped") or (
+        loaded.get("encoding_used") and loaded["encoding_used"] != "utf-8"
+    )
+    if needs_reupload and Path(path).suffix.lower() == ".csv":
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
+            tmp_path = tmp.name
+        df.to_csv(tmp_path, index=False)
+        _get_sandbox().upload_file(tmp_path, sandbox_path)
+        Path(tmp_path).unlink(missing_ok=True)
+    else:
+        _get_sandbox().upload_file(path, sandbox_path)
     SANDBOX_PATHS[handle_id] = sandbox_path
 
-    return {
+    result = {
         "handle_id": handle_id,
         "n_rows": loaded["n_rows"],
         "n_cols": loaded["n_cols"],
         "columns": loaded["columns"],
         "sandbox_path": sandbox_path,
+        "structural_issues": loaded["structural_issues"],
     }
+    if loaded.get("encoding_used") and loaded["encoding_used"] != "utf-8":
+        result["encoding_used"] = loaded["encoding_used"]
+    return result
 
 
 @tool

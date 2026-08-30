@@ -1,25 +1,100 @@
 import pandas as pd
 from pathlib import Path
 
+# Above this size (docs/requirements.md FR-1.4), CSV reads switch from one
+# shot to chunked so peak memory grows with CHUNK_ROWS at a time instead of
+# the whole file at once. Plain constants, not env-configurable yet - bump
+# these directly if a real file needs a different cutoff.
+LARGE_FILE_BYTES = 50_000_000
+CHUNK_ROWS = 50_000
+
+
+def _read_csv(file_path: Path, chunked: bool) -> tuple[pd.DataFrame, str]:
+    """Read a CSV, trying UTF-8 then Latin-1 (FR-1.5's encoding-problem
+    case). Returns the dataframe and whichever encoding actually worked."""
+    for encoding in ("utf-8", "latin-1"):
+        try:
+            if chunked:
+                chunks = pd.read_csv(file_path, encoding=encoding, chunksize=CHUNK_ROWS)
+                return pd.concat(chunks, ignore_index=True), encoding
+            return pd.read_csv(file_path, encoding=encoding), encoding
+        except UnicodeDecodeError:
+            continue
+    raise ValueError(f"Could not decode {file_path} as utf-8 or latin-1.")
+
+
+def _detect_structural_issues(file_path: Path, df: pd.DataFrame) -> dict:
+    """Detect structural problems (FR-1.5). Blank rows are dropped outright
+    since that needs no judgment call. Merged cells and a possible
+    multi-row header (Excel only) are only reported, never auto-fixed -
+    deciding how to handle those needs the same kind of judgment as
+    reverse-coding (see infer_scale), so it's left to the caller."""
+    issues = {}
+
+    blank_rows = df.index[df.isnull().all(axis=1)]
+    if len(blank_rows):
+        df.drop(blank_rows, inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        issues["blank_rows_dropped"] = len(blank_rows)
+
+    if file_path.suffix.lower() in (".xlsx", ".xlsm"):
+        from openpyxl import load_workbook
+
+        # read_only=True would be cheaper, but openpyxl's read-only
+        # worksheet drops merged_cells entirely - not an option here since
+        # detecting merges is the point. Fine memory-wise: oversized Excel
+        # files are already rejected above before we get this far.
+        workbook = load_workbook(file_path, read_only=False)
+        merged = [str(cell_range) for cell_range in workbook.active.merged_cells.ranges]
+        workbook.close()
+        if merged:
+            issues["merged_cells"] = merged
+
+        # A blank header cell (typical when only the left cell of a merged
+        # group carries text) comes back from pandas as "Unnamed: N" - a
+        # reliable tell that row 1 wasn't really the full header and a
+        # second header row got read as data instead.
+        unnamed = sum(1 for col in df.columns if str(col).startswith("Unnamed:"))
+        if len(df.columns) and unnamed > len(df.columns) / 2:
+            issues["possible_multi_row_header"] = (
+                f"{unnamed}/{len(df.columns)} columns have no real header ('Unnamed: N') - "
+                "this file may actually have two header rows. Check it before analyzing."
+            )
+
+    return issues
+
 
 def read_excel(path: str, sheet: str | int = 0) -> dict:
     file_path = Path(path)
     extension = file_path.suffix.lower()
+    is_large = file_path.stat().st_size > LARGE_FILE_BYTES
+    encoding_used = None
 
     if extension == ".csv":
-        df = pd.read_csv(file_path)
+        df, encoding_used = _read_csv(file_path, chunked=is_large)
     elif extension in (".xlsx", ".xls", ".xlsm"):
+        if is_large:
+            raise ValueError(
+                f"{file_path.name} is over {LARGE_FILE_BYTES // 1_000_000}MB - pandas "
+                "can't stream-read Excel. Convert it to CSV first."
+            )
         df = pd.read_excel(file_path, sheet_name=sheet)
     else:
         raise ValueError(f"Unsupported file extension: {extension}")
 
-    return {
+    structural_issues = _detect_structural_issues(file_path, df)
+
+    result = {
         "handle_id": file_path.stem,
         "dataframe": df,
         "n_rows": len(df),
         "n_cols": len(df.columns),
         "columns": df.columns.tolist(),
+        "structural_issues": structural_issues,
     }
+    if encoding_used:
+        result["encoding_used"] = encoding_used
+    return result
 
 
 def profile(handle: dict) -> dict:
