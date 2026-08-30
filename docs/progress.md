@@ -256,6 +256,21 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
     later, not done as part of this note.
     Given the cost of this run, no immediate re-run is planned; revisit
     if/when the retry-loop behavior above gets addressed.
+  - **2026-08-30, retry-loop fixed**: root cause was `infer_scale_tool`
+    returning a low-confidence, uncommitted result for wording it didn't
+    recognize (by design - see FR-9.2 above), and the agent calling it
+    again unchanged instead of supplying an explicit `label_to_score` -
+    297 identical wasted calls in the run above. `SYSTEM_PROMPT` now
+    explicitly forbids repeating that call unchanged and gives a worked
+    example of building `label_to_score` from the item's own listed
+    values. Verified cheaply against a 6-column subset of the exact
+    items that looped before (not the full expensive file): all 6 scored
+    correctly on the first call, zero repeats, Cronbach's alpha 0.864,
+    50k tokens total. Not yet re-verified on the full 61-column file
+    (that's the expensive run this fix exists to make worth retrying) -
+    doing so would also be the first real test of whether the
+    `deepagents` compaction fix helps, now that the thing blocking a
+    clean run is out of the way.
 
 ## Not built yet
 
