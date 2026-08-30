@@ -191,6 +191,53 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
     prompting. Leaving the prompt addition in (it doesn't hurt) but not
     chasing this further with more prompt tuning - not worth the token
     spend for a model-capability gap.
+  - **2026-08-30 re-verification after swapping `create_agent` for
+    `deepagents.create_deep_agent`** (built-in summarization middleware,
+    meant to fix the token-cost problem above): ran the same file/question
+    once. Result is inconclusive-to-negative, not a confirmed fix.
+    Total was **1,676,847 tokens - higher than the ~1-1.2M baseline**, not
+    lower. Per-call input tokens climbed monotonically the whole run (3.1k
+    -> 74.4k across 37 model turns) and never plateaued or reset, and no
+    summary/compaction marker appears anywhere in the log - the largest
+    single call (74.4k) never reached the ~109k trigger point (85% of
+    gpt-4o-mini's context window), so **the summarization middleware never
+    engaged at all this run**. That's the real reason the total didn't
+    drop: the fix had no chance to act, not that it acted and failed.
+    Separately, and likely the actual reason this run cost more than
+    baseline: the agent got stuck in a retry loop unrelated to
+    compression. It called `infer_scale_tool` 297 times and
+    `group_items_tool` 12 times (only 1 `classify_columns_tool` call, and
+    **zero** `score_items_tool` or `run_code_tool` calls the whole run) -
+    it kept re-calling `infer_scale_tool` with the same arguments against
+    the same ~21 DASS-21-style anxiety items, each time getting back
+    "Unrecognized wording ... decide the label order yourself" (an
+    uncommitted scale), never following up with an explicit
+    `label_to_score` to actually commit one, so every `group_items_tool`
+    call on that construct failed with the same "needs a committed scale
+    first" error 12 times over. It never scored any subscale and never
+    ran the chi-square or logistic regression, and gave up with a final
+    answer asking the user to clarify wording instead. This is the same
+    class of small-model judgment gap already noted above (reverse-coding
+    consistency) rather than a new code bug, and not something introduced
+    by the `deepagents` swap - so no code change was made here. Because
+    the run never finished, comparing its total tokens to the baseline
+    (which did finish the full task) isn't a clean apples-to-apples
+    comparison either way. **Fabrication check passed**: `grep` for
+    `chi2_contingency|smf.logit|sm.Logit` found zero matches outside the
+    original question text, and the final answer stated no chi-square,
+    regression, alpha, or subscale-score numbers at all - it honestly
+    reported what it couldn't finish rather than inventing figures. But
+    this is a weak pass: the check had nothing to catch, since no
+    numeric claims were made this run. **Net conclusion: still open.**
+    This run doesn't demonstrate the compaction fix helping, because
+    the conversation never grew large enough in a single call to trigger
+    it before an unrelated retry loop ended the run early. A real test of
+    whether `create_deep_agent`'s summarization caps cost on this file
+    would need a run that actually completes the full task (or a smaller
+    context-window model, or a lower trigger threshold) to find out
+    whether compaction engages once triggered - that's still unverified.
+    Given the cost of this run, no immediate re-run is planned; revisit
+    if/when the retry-loop behavior above gets addressed.
 
 ## Not built yet
 
