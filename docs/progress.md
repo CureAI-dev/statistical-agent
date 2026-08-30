@@ -178,9 +178,19 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
     (inconsistent case-folding, punctuation stripping) - so a name it
     "remembers" from an earlier cell often doesn't match the fresh
     reload, causing repeated `KeyError`/`PatsyError` failures (10-20 per
-    run on this file). Not yet fixed; a likely candidate is telling the
-    agent explicitly to reuse the persisted `df` and rename once, or to
-    verify a rename actually took before building on it.
+    run on this file). Tried a prompt fix: told the agent to load+clean
+    column names ONCE and reuse `df` across calls instead of
+    reloading+re-cleaning every time. Tested on the small nurses file:
+    still took 4 attempts to get a rename right (this time missing one
+    needed column from the rename dict, not a cleaning-scheme mismatch),
+    no real improvement over the pre-fix baseline. Conclusion: this isn't
+    really a prompt-wording problem - it's `gpt-4o-mini` (chosen as the
+    cheap/testing model) being unreliable at a task requiring it to
+    remember and reuse an exact set of names consistently across many
+    tool calls. A stronger model would likely need little to none of this
+    prompting. Leaving the prompt addition in (it doesn't hurt) but not
+    chasing this further with more prompt tuning - not worth the token
+    spend for a model-capability gap.
 
 ## Not built yet
 
