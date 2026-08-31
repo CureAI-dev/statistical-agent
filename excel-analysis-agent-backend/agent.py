@@ -208,18 +208,6 @@ summarization_middleware = _LowTriggerSummarization(
     token_counter=token_counter,
 )
 
-# One call builds the whole "ask model -> run tool -> show result -> ask
-# again" loop for us (this is the "ReAct" agent pattern), plus the
-# summarization middleware above for compressing old messages once the
-# conversation gets long, instead of letting context grow unboundedly.
-agent_graph = create_deep_agent(
-    model=model,
-    tools=tools,
-    system_prompt=SYSTEM_PROMPT,
-    backend=backend,
-    middleware=[summarization_middleware],
-)
-
 
 def _run_gate_phase(file_path: str, question: str, assume_and_state: bool) -> dict:
     """Run the restricted-tool gate phase: load the file, decide whether
@@ -279,12 +267,56 @@ def run(file_path: str, question: str, assume_and_state: bool = False) -> dict:
 
     sandbox_path = SANDBOX_PATHS.get(gate_result["handle_id"], "")
     assumption_line = f"Assumption: {gate_result['assumption']}\n\n" if gate_result.get("assumption") else ""
+
+    # The file handle, question, assumption, and task list all go into
+    # phase 2's *system* prompt, not only the opening Human message - a
+    # live run surfaced that the summarization middleware can offload the
+    # opening message entirely (confirmed live: cutoff_index=3 after just
+    # the second tool-call cycle, on a run that stopped after 2 of 6
+    # task-list stages and never restated its assumption). A second live
+    # run, after moving the task list/assumption/question here, showed the
+    # SAME root cause hitting a second fact still left only in the opening
+    # message: handle_id/sandbox_path also got summarized away
+    # (cutoff_index=5 on the very first event), and with no tool call in
+    # this phase-2 conversation to re-derive sandbox_path (read_excel_tool
+    # is deliberately not called again here), the model guessed a
+    # plausible-looking but wrong path ("/sandbox/...") for run_code_tool
+    # instead - so it belongs in the same protected place. A system prompt
+    # is resent in full on every model call and is never part of the
+    # compactable message history (deepagents keeps it in
+    # request.system_message, separate from request.messages, which is
+    # all _determine_cutoff_index/_partition_messages ever touch) - baking
+    # all of this in here is what keeps it in view no matter how early or
+    # how often compaction fires. Building a fresh graph per run() call to
+    # do this mirrors the pattern _run_gate_phase already uses for its own
+    # per-call graph.
+    phase2_system_prompt = (
+        SYSTEM_PROMPT
+        + "\n\nThis run's file handle, question, assumption (if any), and "
+        "task list - restated here because the opening message carrying "
+        "the same detail can be summarized away mid-run, and this cannot:\n"
+        + f"handle_id: {gate_result['handle_id']}, sandbox_path: {sandbox_path}\n\n"
+        + f"Question: {question}\n\n"
+        + assumption_line
+        + f"Task list:\n{_format_tasks(gate_result['tasks'])}\n\n"
+        + "State any assumption above as the first line of your final "
+        "answer. Work through every task-list stage in order (skipping "
+        "only stages the list itself omits) before answering - if "
+        "conversation summarization compacts earlier tool results out of "
+        "view, the handle_id/sandbox_path and task list above still apply "
+        "in full and are not themselves a signal that the work is done."
+    )
+    run_graph = create_deep_agent(
+        model=model,
+        tools=tools,
+        system_prompt=phase2_system_prompt,
+        backend=backend,
+        middleware=[summarization_middleware],
+    )
     user_message = (
         f"This file is already loaded - do not call read_excel_tool again. "
         f"handle_id: {gate_result['handle_id']}, sandbox_path: {sandbox_path}\n\n"
-        f"Question: {question}\n\n"
-        f"{assumption_line}"
-        f"Task list:\n{_format_tasks(gate_result['tasks'])}"
+        f"Question: {question}"
     )
 
     final_answer = ""
@@ -298,7 +330,7 @@ def run(file_path: str, question: str, assume_and_state: bool = False) -> dict:
         # Passed inline (not pulled into a variable first) so the type
         # checker matches this dict literal against the exact shape
         # create_deep_agent expects, instead of just inferring "some dict".
-        for step in agent_graph.stream(
+        for step in run_graph.stream(
             {"messages": [{"role": "user", "content": user_message}]},
             stream_mode="values",
         ):
