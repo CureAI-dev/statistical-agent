@@ -45,9 +45,10 @@ from agent_tools import (
     recommend_test_tool,
     run_code_tool,
     score_items_tool,
+    submit_plan_tool,
 )
-from prompts import SYSTEM_PROMPT
-from store import TOOL_CALLS
+from prompts import GATE_SYSTEM_PROMPT, SYSTEM_PROMPT
+from store import SANDBOX_PATHS, TOOL_CALLS
 
 load_dotenv()
 
@@ -220,7 +221,41 @@ agent_graph = create_deep_agent(
 )
 
 
-def run(file_path: str, question: str) -> str:
+def _run_gate_phase(file_path: str, question: str, assume_and_state: bool) -> dict:
+    """Run the restricted-tool gate phase: load the file, decide whether
+    the request is ambiguous, and capture the resulting decision straight
+    off the submit_plan_tool call's arguments - not by parsing prose."""
+    handle_id = Path(file_path).stem
+    gate_graph = create_deep_agent(
+        model=model,
+        tools=[read_excel_tool, profile_tool, submit_plan_tool],
+        system_prompt=GATE_SYSTEM_PROMPT,
+        backend=backend,
+    )
+    gate_message = (
+        f"Analyze the file at this path: {file_path}\n\n"
+        f"Question: {question}\n\n"
+        f"assume_and_state: {assume_and_state}"
+    )
+
+    decision = None
+    for step in gate_graph.stream(
+        {"messages": [{"role": "user", "content": gate_message}]},
+        stream_mode="values",
+    ):
+        for message in step["messages"]:
+            if message.type != "ai" or not message.tool_calls:
+                continue
+            for call in message.tool_calls:
+                if call["name"] == "submit_plan_tool":
+                    decision = call["args"]
+        if decision is not None:
+            break
+
+    return _validate_plan_decision(decision, handle_id)
+
+
+def run(file_path: str, question: str, assume_and_state: bool = False) -> dict:
     """Ask the agent to analyze `file_path` and answer `question`.
 
     Prints each step (tool calls, tool results, final answer) as it
@@ -231,12 +266,26 @@ def run(file_path: str, question: str) -> str:
     Returns the final plain-English answer.
     """
     handle_id = Path(file_path).stem
-    user_message = f"Analyze the file at this path: {file_path}\n\nQuestion: {question}"
 
     # Cleared here (not just at module load) so calling run() more than
     # once in the same process doesn't mix this run's tool latencies with
-    # a previous one's.
+    # a previous one's. Cleared before the gate phase runs so its tool
+    # calls count toward this run's totals too.
     TOOL_CALLS.clear()
+
+    gate_result = _run_gate_phase(file_path, question, assume_and_state)
+    if gate_result["status"] == "needs_clarification":
+        return {"status": "needs_clarification", "question": gate_result["question"]}
+
+    sandbox_path = SANDBOX_PATHS.get(gate_result["handle_id"], "")
+    assumption_line = f"Assumption: {gate_result['assumption']}\n\n" if gate_result.get("assumption") else ""
+    user_message = (
+        f"This file is already loaded - do not call read_excel_tool again. "
+        f"handle_id: {gate_result['handle_id']}, sandbox_path: {sandbox_path}\n\n"
+        f"Question: {question}\n\n"
+        f"{assumption_line}"
+        f"Task list:\n{_format_tasks(gate_result['tasks'])}"
+    )
 
     final_answer = ""
     total_tokens = {"input": 0, "output": 0, "total": 0}
@@ -345,4 +394,4 @@ def run(file_path: str, question: str) -> str:
     )
     print(f"\n=== Outputs written to {output_dir} ===")
 
-    return final_answer
+    return {"status": "done", "answer": final_answer}
