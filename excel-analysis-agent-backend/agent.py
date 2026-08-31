@@ -51,6 +51,44 @@ from store import TOOL_CALLS
 
 load_dotenv()
 
+_FALLBACK_QUESTION = (
+    "Your request needs more detail before this file can be analyzed - "
+    "please restate what outcome, comparison, or grouping you want, "
+    "referencing the file's actual column names."
+)
+
+
+def _validate_plan_decision(decision: dict | None, handle_id: str) -> dict:
+    """Turn the gate phase's captured submit_plan_tool arguments into a
+    clean decision, defaulting to a clarifying question whenever the
+    model's call was missing, malformed, or never happened at all - fail
+    toward asking rather than silently guessing (see the design doc's
+    Error handling section)."""
+    if decision is None:
+        return {"status": "needs_clarification", "question": _FALLBACK_QUESTION}
+
+    status = decision.get("status")
+    if status == "needs_clarification" and decision.get("question"):
+        return {"status": "needs_clarification", "question": decision["question"]}
+    if status == "ready" and decision.get("tasks"):
+        return {
+            "status": "ready",
+            "handle_id": handle_id,
+            "assumption": decision.get("assumption"),
+            "tasks": decision["tasks"],
+        }
+    return {"status": "needs_clarification", "question": _FALLBACK_QUESTION}
+
+
+def _format_tasks(tasks: list[dict]) -> str:
+    """Render the committed task list as plain text for phase 2's opening
+    message."""
+    return "\n".join(
+        f"- [{task.get('status', 'pending')}] {task.get('step')}: {task.get('description', '')}"
+        for task in tasks
+    )
+
+
 # The model that decides which tool to call and when. gpt-4o-mini is cheap
 # and more than capable of this kind of tool-picking + summarizing task.
 model = ChatOpenAI(model="gpt-4o-mini")
