@@ -437,3 +437,38 @@ def score_items_tool(handle_id: str, groups: list[str] | None = None) -> dict:
         Path(tmp_path).unlink(missing_ok=True)
 
     return json_safe(result["summary"])
+
+
+@tool
+@_timed
+def submit_plan_tool(
+    status: str,
+    question: str | None = None,
+    assumption: str | None = None,
+    tasks: list[dict] | None = None,
+) -> dict:
+    """Call this exactly once, as your very last action, to end this gate
+    phase. No other tool call should come after it.
+
+    Call with status="needs_clarification" and a question - one specific,
+    targeted question referencing this file's actual columns - if the
+    request is ambiguous and you were told not to assume.
+
+    Call with status="ready" and a task list otherwise. If you made an
+    assumption instead of asking, state it in one sentence via
+    `assumption`.
+
+    Args:
+        status: "needs_clarification" or "ready".
+        question: the single clarifying question to ask. Required when
+            status is "needs_clarification".
+        assumption: one sentence stating an assumption you made instead
+            of asking, if any. Only meaningful when status is "ready".
+        tasks: the task list. Required when status is "ready". Each item:
+            {"step": one of "classify"/"infer_scale"/"group"/"score"/
+            "test"/"report", "description": str, "status": "pending"}.
+            Omit steps that don't apply to this file or question - e.g.
+            skip classify/infer_scale/group entirely for a file that's
+            already fully pre-scored.
+    """
+    return {"received": True, "status": status}
