@@ -540,16 +540,24 @@ Satisfies: FR-2.1, FR-2.2, FR-2.3
   ambiguous control question ("compare the outcomes between the two
   groups" with no named grouping column) still correctly gets flagged.
 - Known limitation, not a code bug: even after that fix, the canonical
-  smoke-test question does not reliably pass through the gate - every
-  live trial conducted (11, both before and after the ambiguity-clause
-  fix) returned `needs_clarification`, never `ready`, now for a
-  different generic-Likert-phrasing reason each time (which columns are
-  Likert items, which subscale a score belongs to, etc.) rather than
-  the specifically-diagnosed clause-2 defect. Investigated across 6
-  prompt iterations and 11 live trials; judged the same class of
-  small-model (`gpt-4o-mini`) judgment-reliability gap already
-  documented elsewhere in this file (reverse-coding inconsistency under
-  section 7, the old `infer_scale_tool` retry loop) rather than a
+  smoke-test question does not reliably pass through the gate. The
+  direct before/after comparison - Task 5's pre-fix baseline trial
+  (before this ambiguity-clause fix existed) and the shipped fix's own
+  final live re-verification - returned `needs_clarification`, never
+  `ready`, both times, both still over a generic Likert-column-
+  identification framing ("which columns are/you consider Likert
+  items"). Nine further trials run while iterating toward that fix
+  (prompt versions V1 through V6, each a discarded candidate wording,
+  not the shipped code) also returned `needs_clarification` every time,
+  citing a wider range of generic-Likert-phrasing reasons across
+  versions (item correlation/reverse-coding, confirming already-named
+  columns, a wrongly-claimed missing outcome variable) - supporting
+  evidence that no version tried moved the needle, though those test
+  in-progress wordings rather than what actually shipped. Investigated
+  across 6 prompt iterations; judged the same class of small-model
+  (`gpt-4o-mini`) judgment-reliability gap already documented elsewhere
+  in this file (reverse-coding inconsistency under section 7, the old
+  `infer_scale_tool` retry loop) rather than a
   residual wording gap - further prompt tuning showed no trend toward
   reliability across the iterations tried. Consistent with this
   project's precedent of accepting this class of limitation rather than
