@@ -24,6 +24,10 @@ QUESTION = (
 )
 
 if __name__ == "__main__":
-    answer = run(FILE_PATH, QUESTION)
-    print("\n=== Final answer ===")
-    print(answer)
+    result = run(FILE_PATH, QUESTION)
+    if result["status"] == "needs_clarification":
+        print("\n=== Clarifying question ===")
+        print(result["question"])
+    else:
+        print("\n=== Final answer ===")
+        print(result["answer"])

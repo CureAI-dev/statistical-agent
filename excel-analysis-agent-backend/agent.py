@@ -251,7 +251,7 @@ def run(file_path: str, question: str, assume_and_state: bool = False) -> dict:
     the report/trace/results to outputs/<handle_id>/<timestamp>/ once done
     (FR-8) so they survive after the process exits. Also tracks step count
     and per-tool latency (NFR-5) alongside the existing token counting.
-    Returns the final plain-English answer.
+    Returns a dict: {'status': 'needs_clarification', 'question': str} or {'status': 'done', 'answer': str}.
     """
     handle_id = Path(file_path).stem
 
