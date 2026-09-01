@@ -492,7 +492,9 @@ Satisfies: FR-2.1, FR-2.2, FR-2.3
 - Verified live end to end against the nurses file. With
   `assume_and_state=False` and the generic question "Analyze this
   file.", the gate phase called only the 3 restricted tools (confirmed
-  by a message-id-deduped trace of the stream) and returned a clarifying
+  at the time by a message-id-deduped diagnostic trace of the stream -
+  now checkable directly from the gate phase's own shipped `trace.log`,
+  see the fix-wave note below) and returned a clarifying
   question grounded in the file's real content ("perceived stress and
   coping strategies... emotional responses and demographic
   information"), not a generic "please clarify." With
@@ -507,7 +509,39 @@ Satisfies: FR-2.1, FR-2.2, FR-2.3
   answer that restates the assumption as its literal first line with
   every number traceable to a real tool result - 8 LLM turns, 21 tool
   calls, 47,492 tokens, 4 summarization events survived mid-run without
-  losing the plan.
+  losing the plan (that count was phase-2 only at the time - see the
+  fix-wave note below for the corrected, whole-run figures).
+- Fixed during the FR-2 final fix wave (2026-09-01): the turn/tool-call/
+  token/summarization-event counts just above were phase-2-only -
+  `_run_gate_phase` did no trace-printing or token-counting of its own,
+  so gate-phase LLM turns/tokens never showed up in `total_tokens`/
+  `step_count`, gate-phase messages never appeared in `trace.log`, and
+  on the `needs_clarification` path `write_outputs` never ran at all -
+  a run that spent real tokens deciding to ask a question left no
+  output files behind. `_run_gate_phase` now traces and counts itself
+  the same way phase 2's loop already did, and returns that to `run()`,
+  which folds both phases into one set of whole-run totals and calls
+  `write_outputs` on both the `needs_clarification` and `done` paths.
+  Also fixed in the same pass: `run()`'s `try`/`finally: close_sandbox()`
+  used to wrap only phase 2's loop, so the (common, given the limitation
+  noted below) `needs_clarification` return left a real, billable E2B
+  sandbox open until its own 20-minute timeout - one `try`/`finally` now
+  wraps the gate phase call and phase 2 together, closing the sandbox on
+  every exit path (`needs_clarification`, `done`, or an unhandled
+  exception in either phase), confirmed live. Re-verified live end to
+  end (same file, same canonical question, `assume_and_state=True`):
+  `trace.log` now opens with the gate phase's own messages (the
+  `Analyze the file at this path...` prompt through its
+  `submit_plan_tool` call) instead of starting mid-run at phase 2, and
+  the printed summary/`results.json` now cover the whole run - 53 LLM
+  turns, 105 tool calls, 346,032 tokens (336,266 in / 9,766 out), 43
+  summarization events. (This particular re-verification run's own tool
+  mix - `infer_scale_tool` called 56 times against only 10 Likert items,
+  and a final answer that reported the logistic regression but not every
+  stage - reproduced a milder version of the retry-loop pattern and the
+  incomplete-final-answer pattern already documented elsewhere in this
+  file as known `gpt-4o-mini` reliability gaps, not a regression from
+  this fix wave.)
 - Fixed along the way: the task list and assumption, originally placed
   only in phase 2's opening Human message, were being silently lost to
   the pre-existing summarization middleware (`trigger=8000` tokens, from
