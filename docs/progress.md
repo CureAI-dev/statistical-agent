@@ -694,13 +694,104 @@ Satisfies: NFR-6 (built); NFR-1 (partial - see below)
   new issue, and not something this change was expected to fully solve.
   **Net: NFR-1 is genuinely better, not genuinely done.**
 
+### 12. Persistent cross-session memory
+Satisfies: FR-4.3 (built, verified live end to end); FR-4.4 (built)
+
+- **Built**: a new `long_term_memory.py` module backed by LangGraph's
+  `SqliteStore` (`langgraph.store.sqlite`, from the new
+  `langgraph-checkpoint-sqlite` dependency) - the framework's own
+  cross-thread/cross-session memory primitive, same family as the
+  checkpointer this project doesn't use, just for durable facts instead
+  of conversation state. Chosen over hand-rolling a JSON store after
+  actually researching what LangGraph/deepagents ship for this (docs +
+  live introspection of the installed package, not assumed): `BaseStore`
+  gives namespace-keyed `put`/`get`/`search` for free (FR-4.4's "keyed
+  and queryable"), and it's consistent with this project's existing
+  decision to use `deepagents`/LangGraph machinery over hand-rolling
+  wherever it already fits (see "Architecture decisions made along the
+  way" below, and the FR-5/FR-6 `deepagents` adoption above).
+- Keyed by a **schema signature** (sha256 of sorted `column:dtype` pairs,
+  12 hex chars), not `handle_id` - `read_excel()` in `tools.py` sets
+  `handle_id` to the filename stem, which breaks the moment a file is
+  renamed or re-exported. A schema signature recognizes "the same file
+  shape" regardless of filename.
+- What's remembered, and how it's written: `classify_columns_tool`,
+  `infer_scale_tool`, and `group_items_tool` (all in `agent_tools.py`)
+  now each auto-persist to `long_term_memory` whenever they commit an
+  actual override/decision (not their mechanical suggestions - those are
+  cheaply re-derivable, and persisting them would just be noise). A new
+  `recall_memory_tool` reads it all back for a given `handle_id`'s schema
+  in one call; `SYSTEM_PROMPT` now tells the agent to call it right after
+  `profile_tool`, before `classify_columns_tool`, and treat a returned
+  prior scale/grouping as a strong prior it can still override. `run()`
+  in `agent.py` also persists a capped rolling history (last 5) of each
+  run's question + final answer per schema. A new `set_preference_tool`
+  is the one explicit write - for durable output preferences the user
+  states mid-conversation - kept separate from the auto-persist path on
+  purpose: no general "remember anything" tool, to avoid the model
+  writing arbitrary junk into long-term state.
+- **Verified directly** (no LLM involved - same reasoning as section 11's
+  retry-backoff check): `schema_signature` + a `put`/`get`/`search` round
+  trip through `long_term_memory.py`'s real functions, including
+  reopening a fresh `SqliteStore` connection against the same on-disk
+  file to simulate a separate process/session. Confirmed: a schema
+  committed in one "session" is recalled correctly in the next; the same
+  schema is still recognized under a different filename; a genuinely
+  different schema returns `seen_before: False` (no false match).
+- **Verified end to end, live, two real separate processes** (nurses
+  file, `assume_and_state=True`, same question both times): session 1
+  committed classification/scale/reverse-coding/grouping for all 10
+  Likert items and a run summary, all under one schema signature.
+  Session 2 - a fresh `uv run` process, no in-memory state shared with
+  session 1 - called `recall_memory_tool` unprompted (per the new
+  `SYSTEM_PROMPT` instruction) as its very first move after `profile_tool`,
+  got back `seen_before: true` with everything session 1 committed, and
+  visibly used it: it skipped `classify_columns_tool` entirely, attempted
+  to commit the recalled grouping directly, hit the expected "need a
+  committed scale first" error (per-run `SCALES`/`GROUPS` in `store.py`
+  intentionally don't carry over between processes - only
+  `long_term_memory` does), and recovered by calling `infer_scale_tool`
+  for exactly the 6 relevant items with the *same* reverse-coded values
+  it had just recalled, then completed grouping/scoring normally - 14
+  tool calls total vs. session 1's 17, cheaper because it didn't have to
+  re-derive classification from scratch.
+- **Two real bugs found and fixed by that live run** (exactly why this
+  wasn't skipped as "just plumbing, already unit-tested"):
+  1. **Lost writes under concurrency**: LangGraph runs the several tool
+     calls from one AI turn concurrently (confirmed live: a single turn
+     issued all 10 `infer_scale_tool` calls at once). The original
+     `remember_scale`/`remember_classification_overrides`/etc. did a
+     non-atomic get-modify-put against the same store row, so concurrent
+     calls clobbered each other - the first live run's persisted
+     `scales` ended up with only 4 of 10 items, and the wrong
+     `reverse_coded` values at that. Fixed with a module-level
+     `threading.Lock` in `long_term_memory.py` around every read-modify-
+     write; reverified with a synthetic 20-thread concurrent-write test
+     (0 lost) before spending more API budget re-running the live test.
+  2. **Schema signature drift mid-run**: `score_items_tool` mutates the
+     same DataFrame object in `store.HANDLES` in place (adds
+     `'{group}_score'` columns) - so recomputing the schema signature
+     from `HANDLES[handle_id]` *after* scoring (as `agent.py`'s end-of-run
+     conclusion write originally did) produced a different signature than
+     the one classify/scale/group commits used earlier in the very same
+     run. The conclusion was silently filed under a key no future run
+     against the original file would ever compute. Fixed by adding
+     `store.SCHEMA_SIGS` (handle_id -> signature, captured once by
+     `read_excel_tool` before any mutation can happen) and switching
+     every `long_term_memory` call site to read that cached value instead
+     of recomputing it.
+  Both were invisible to the earlier direct/synthetic verification (which
+  never exercised real concurrent tool-call batches or a real
+  classify->score mutation sequence) - consistent with this project's
+  running lesson that a live run surfaces failure modes a same-process
+  test can't.
+- New local dependency: `langgraph-checkpoint-sqlite` (stdlib `sqlite3`
+  under the hood, no external service). Backing file at
+  `excel-analysis-agent-backend/memory/long_term.db`, gitignored like
+  `outputs/` - local durable state, not source.
+
 ## Not built yet
 
-- **FR-4.3**: persistent long-term memory across separate runs (schemas,
-  cleaning routines, preferences, prior conclusions surviving between
-  separate `uv run` invocations). The in-session part (FR-5/FR-6,
-  context-budget tracking and compression) has shipped via `deepagents` -
-  see section 7 above - though its actual benefit remains unconfirmed.
 - **NFR-1 (remainder)**: per-item reverse-coding judgment (and the
   agent's follow-through on its own tool's reverse-coding diagnostic)
   still isn't consistent run to run - see section 11. NFR-4 (chunking for

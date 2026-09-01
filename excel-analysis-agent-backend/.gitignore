@@ -14,3 +14,6 @@ wheels/
 
 # Generated per-run outputs (FR-8) - not source
 outputs/
+
+# Long-term memory store (FR-4.3) - local durable state, not source
+memory/

@@ -31,8 +31,9 @@ from pathlib import Path
 
 from langchain_core.tools import tool
 
+import long_term_memory
 from sandbox_tool import Runtime
-from store import CLASSIFICATIONS, GROUPS, HANDLES, SANDBOX_PATHS, SCALES, TOOL_CALLS, json_safe
+from store import CLASSIFICATIONS, GROUPS, HANDLES, SANDBOX_PATHS, SCALES, SCHEMA_SIGS, TOOL_CALLS, json_safe
 from tools import (
     classify_columns,
     group_items,
@@ -185,6 +186,11 @@ def read_excel_tool(path: str, sheet: str | int = 0) -> dict:
     else:
         _get_sandbox().upload_file(path, sandbox_path)
     SANDBOX_PATHS[handle_id] = sandbox_path
+    # Captured once, here, before score_items_tool can mutate this same df
+    # in place (adds '{group}_score' columns) - see store.py's SCHEMA_SIGS
+    # docstring for why every other long_term_memory call reuses this
+    # instead of recomputing from HANDLES[handle_id].
+    SCHEMA_SIGS[handle_id] = long_term_memory.schema_signature(df)
 
     result = {
         "handle_id": handle_id,
@@ -313,6 +319,10 @@ def classify_columns_tool(handle_id: str, overrides: dict[str, str] | None = Non
         for column, new_type in overrides.items():
             if column in result:
                 result[column] = {**result[column], "suggested_type": new_type, "confidence": "overridden"}
+        # Only overrides are worth remembering across sessions - a
+        # mechanical suggestion is re-derivable any time from the same
+        # data, but an override is the agent's own judgment call (FR-4.3).
+        long_term_memory.remember_classification_overrides(SCHEMA_SIGS[handle_id], overrides)
     else:
         result = suggestions
 
@@ -368,6 +378,11 @@ def infer_scale_tool(
             result["label_to_score"] = label_to_score
             result["n_points"] = len(label_to_score)
         result["confidence"] = "overridden"
+        # Reverse-coding is exactly the judgment call that drifts between
+        # runs on this project (see docs/progress.md section 11) -
+        # remembering it here means a later run against this same schema
+        # can reuse a validated call instead of re-guessing from scratch.
+        long_term_memory.remember_scale(SCHEMA_SIGS[handle_id], col, result)
     else:
         result = suggestion
 
@@ -433,6 +448,7 @@ def group_items_tool(
         name: {"columns": cols, "rationale": (rationale or {}).get(name)} for name, cols in groups.items()
     }
     GROUPS[handle_id] = committed
+    long_term_memory.remember_groups(SCHEMA_SIGS[handle_id], committed)
     return committed
 
 
@@ -484,6 +500,63 @@ def score_items_tool(handle_id: str, groups: list[str] | None = None) -> dict:
         Path(tmp_path).unlink(missing_ok=True)
 
     return json_safe(result["summary"])
+
+
+@tool
+@_timed
+@_with_retry
+def recall_memory_tool(handle_id: str) -> dict:
+    """Check whether this exact file schema (same column names and types)
+    was already analyzed in a past run - possibly in a separate session,
+    days ago (FR-4.3's long-term memory).
+
+    Call this once, right after profile_tool, before classify_columns_tool.
+    If seen_before is True, the result may include classifications
+    (committed overrides only), scales (committed reverse-coding/point-
+    scale calls, keyed by column), groups (committed subscale groupings),
+    and conclusions (up to the last 5 prior run summaries for this
+    schema) - all validated human judgment from a past run, not a
+    mechanical suggestion. Treat these as a strong starting point: you
+    can still call classify_columns_tool/infer_scale_tool/group_items_tool
+    again to override anything that looks wrong for this file's actual
+    values, but don't re-derive from scratch a call that was already made
+    and committed for this exact schema. If seen_before is False, there's
+    nothing to reuse - proceed normally.
+
+    The result also includes any durable output preferences the user has
+    stated in a past run (see set_preference_tool) - apply them without
+    being asked again.
+
+    Args:
+        handle_id: the id returned by read_excel_tool.
+    """
+    if handle_id not in HANDLES:
+        return {"error": f"No file loaded with handle_id '{handle_id}'. Call read_excel_tool first."}
+    result = long_term_memory.recall(SCHEMA_SIGS[handle_id])
+    preferences = long_term_memory.get_all_preferences()
+    if preferences:
+        result["preferences"] = preferences
+    return result
+
+
+@tool
+@_timed
+@_with_retry
+def set_preference_tool(key: str, value: str) -> dict:
+    """Remember a durable output preference the user states (e.g. "always
+    round percentages to 1 decimal", "show subscale scores as a table,
+    not prose") so future runs - including in a separate session - apply
+    it without being told again.
+
+    Only call this when the user actually states a preference in this
+    conversation. Never invent one on your own.
+
+    Args:
+        key: a short name for the preference, e.g. "decimal_places".
+        value: the preference itself, in plain text.
+    """
+    long_term_memory.set_preference(key, value)
+    return {"remembered": {key: value}}
 
 
 @tool

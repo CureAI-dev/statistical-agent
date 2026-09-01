@@ -22,6 +22,17 @@ HANDLES: dict = {}
 # to recreate them by hand.
 SANDBOX_PATHS: dict = {}
 
+# Each handle_id's long-term-memory schema signature (see
+# long_term_memory.schema_signature), captured once by read_excel_tool at
+# load time and reused everywhere else instead of recomputing it from
+# HANDLES[handle_id]. score_items_tool mutates that dataframe in place
+# (adds '{group}_score' columns), which would silently change the
+# signature mid-run if it were recomputed later - splitting one run's
+# classify/scale/group commits and its final conclusion across two
+# different schema keys, so a later run against the original (unscored)
+# file would recall the former but never the latter.
+SCHEMA_SIGS: dict = {}
+
 # Committed column classification per handle_id (see classify_columns_tool
 # in agent_tools.py) - the place later steps (grouping, scoring) read
 # "which columns are Likert items" from.

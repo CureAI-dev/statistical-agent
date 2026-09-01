@@ -8,7 +8,12 @@ questions about it by calling tools, instead of us hardcoding the steps.
   module docstring for the tool-by-tool breakdown) and running any code
   the model writes inside the E2B sandbox (`sandbox_tool.py`), never here.
 - `store.py` holds the committed state each tool reads/writes (loaded
-  files, column classifications, Likert scales, subscale groupings).
+  files, column classifications, Likert scales, subscale groupings) - one
+  process, one run.
+- `long_term_memory.py` holds the same kind of committed state, except it
+  survives across separate `uv run` invocations (FR-4.3) - keyed by a
+  file's schema signature, not handle_id, so it still recognizes a file
+  that's been renamed or re-exported since the last time it was seen.
 - `prompts.py` holds the system prompt.
 - `report.py` writes each run's report/trace/results to disk once it's
   done (FR-8) - before this, they only ever printed to the terminal.
@@ -33,6 +38,7 @@ from deepagents.middleware import SummarizationMiddleware
 from langchain_core.messages.utils import count_tokens_approximately
 from langchain_openai import ChatOpenAI
 
+import long_term_memory
 from report import write_outputs
 
 from agent_tools import (
@@ -42,13 +48,15 @@ from agent_tools import (
     infer_scale_tool,
     profile_tool,
     read_excel_tool,
+    recall_memory_tool,
     recommend_test_tool,
     run_code_tool,
     score_items_tool,
+    set_preference_tool,
     submit_plan_tool,
 )
 from prompts import GATE_SYSTEM_PROMPT, SYSTEM_PROMPT
-from store import HANDLES, SANDBOX_PATHS, TOOL_CALLS
+from store import HANDLES, SANDBOX_PATHS, SCHEMA_SIGS, TOOL_CALLS
 
 load_dotenv()
 
@@ -175,11 +183,13 @@ tools = [
     infer_scale_tool,
     group_items_tool,
     score_items_tool,
+    recall_memory_tool,
+    set_preference_tool,
 ]
 
 # The default token_counter (count_tokens_approximately with no tools=)
 # only estimates the conversation text - it doesn't count the token cost
-# of the tool schemas resent on every single call. With 8 tools, that's a
+# of the tool schemas resent on every single call. With 10 tools, that's a
 # real chunk of every real request that the trigger below would otherwise
 # never see, which is exactly why the first attempt at this fix (trigger=
 # 8000, default counter) still logged 0 summarization events on a run
@@ -543,5 +553,21 @@ def run(file_path: str, question: str, assume_and_state: bool = False) -> dict:
         summarization_events,
     )
     print(f"\n=== Outputs written to {output_dir} ===")
+
+    # FR-4.3: persist this run's conclusion against the file's schema so a
+    # later run (even in a separate session) can see it via
+    # recall_memory_tool. Uses the schema signature cached at load time
+    # (store.SCHEMA_SIGS), NOT recomputed from HANDLES[handle_id] here -
+    # score_items_tool mutates that same dataframe in place (adds
+    # '{group}_score' columns), which would silently change the signature
+    # and file this conclusion under a different key than the
+    # classify/scale/group commits made earlier in this same run (caught
+    # live: a real run's conclusion ended up unrecallable for exactly this
+    # reason before this fix). handle_id is guaranteed present in
+    # SCHEMA_SIGS here - reaching this line requires the gate phase's
+    # "ready" + handle_id-in-HANDLES check to have passed above, and
+    # read_excel_tool sets both HANDLES and SCHEMA_SIGS together.
+    if final_answer:
+        long_term_memory.remember_conclusion(SCHEMA_SIGS[handle_id], question, final_answer[:2000])
 
     return {"status": "done", "answer": final_answer}
