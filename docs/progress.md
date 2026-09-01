@@ -650,6 +650,50 @@ Satisfies: FR-2.1, FR-2.2, FR-2.3
   the design doc's Risks section), not something covered by the
   verifications above.
 
+### 11. Tool retry-with-backoff and run-to-run reproducibility
+Satisfies: NFR-6 (built); NFR-1 (partial - see below)
+
+- **NFR-6, built**: every `@tool`-wrapped function in `agent_tools.py` is
+  now also wrapped with `@_with_retry` (under `@_timed`, over the raw
+  function). Each tool already returns an `{"error": ...}` dict for its
+  own expected failure modes (missing handle_id, missing column, ...)
+  instead of raising - an actual exception means something unexpected
+  happened (e.g. a transient E2B/network hiccup), which is what this
+  retries: up to 3 attempts with exponential backoff (1s, 2s), returning
+  a graceful `{"error": "... failed after 3 attempts: ..."}` dict on
+  final failure instead of letting the exception crash the whole run.
+  `SYSTEM_PROMPT` now tells the agent that failure message means the
+  retries already happened - don't manually repeat the same call, report
+  the failure and move on. Verified directly (no LLM involved, so a unit
+  test is the right check, not a costly live run): a function failing
+  twice then succeeding on attempt 3 returns the real result after ~3s of
+  backoff; a function that always fails returns the clean error dict
+  after the same backoff instead of raising, in both cases confirmed via
+  `agent_tools._with_retry` called directly.
+- **NFR-1, partial**: `ChatOpenAI` now sets `temperature=0` (was the
+  default 1.0), and `SYSTEM_PROMPT` requires a fixed seed
+  (`random_state=42`) on any sandbox code involving randomness (train/
+  test splits, sklearn models, sampling) - the concrete gap a prior run
+  already hit (section 7's sklearn logistic regression note, no
+  `random_state` set). **Verified end to end**: ran the agent twice,
+  same file (nurses) and same question, back to back. Column
+  classification and Likert-item grouping came back byte-for-byte
+  identical both times - previously exactly the kind of judgment call
+  that could drift. **But not a full fix**: per-item reverse-coding
+  still differed between the two runs (2 of 10 items landed on opposite
+  `reverse_coded` flags across the runs), and in both runs the new
+  `likely_reverse_coded_items` diagnostic (section 7) correctly flagged
+  2 items, but the agent didn't act on it before reporting either time -
+  unlike an earlier verification run with a fuller question, where it
+  did self-correct. Final Cronbach's alpha differed run to run (0.573 vs
+  0.487), both below the 0.7 bar. `temperature=0` measurably reduced
+  drift (classify/group is now solid) but didn't close the reverse-
+  coding gap - this is the same already-documented model-capability
+  limitation from section 7 ("a small model doesn't always loop back and
+  fix it before reporting, even though the prompt asks it to"), not a
+  new issue, and not something this change was expected to fully solve.
+  **Net: NFR-1 is genuinely better, not genuinely done.**
+
 ## Not built yet
 
 - **FR-4.3**: persistent long-term memory across separate runs (schemas,
@@ -657,10 +701,12 @@ Satisfies: FR-2.1, FR-2.2, FR-2.3
   separate `uv run` invocations). The in-session part (FR-5/FR-6,
   context-budget tracking and compression) has shipped via `deepagents` -
   see section 7 above - though its actual benefit remains unconfirmed.
-- **NFR-1, NFR-6**: deterministic re-runs and formal retry-with-backoff on
-  tool failure. NFR-4 (chunking for large files) is now partially covered
-  by section 8's read-step chunking, scoped down to just the read +
-  profile step - see that section's scope note.
+- **NFR-1 (remainder)**: per-item reverse-coding judgment (and the
+  agent's follow-through on its own tool's reverse-coding diagnostic)
+  still isn't consistent run to run - see section 11. NFR-4 (chunking for
+  large files) is now partially covered by section 8's read-step
+  chunking, scoped down to just the read + profile step - see that
+  section's scope note.
 
 ## Architecture decisions made along the way
 
