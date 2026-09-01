@@ -108,11 +108,18 @@ what alpha is for - but a small model (`gpt-4o-mini`) doesn't always loop
 back and fix it before reporting, even though the prompt asks it to.
 
 Survey-mode pipeline (FR-9.1-9.8) is now fully built (column
-classification, scale inference, grouping, scoring). Not built: the
-persistent, cross-session part of the memory system (FR-4.3 - schemas/
-preferences/conclusions that survive between separate `uv run` calls).
-Treat anything about that in requirements.md as a target, not a
-description of existing code.
+classification, scale inference, grouping, scoring). Persistent,
+cross-session memory (FR-4.3 - schemas/preferences/conclusions that
+survive between separate `uv run` calls) is also now built, via a new
+`long_term_memory.py` backed by LangGraph's `SqliteStore` - see
+`docs/progress.md` section 12. Verified live across two real separate
+`uv run` processes against the same file: the second session recalled
+and reused the first session's committed classification, reverse-coding
+calls, and grouping unprompted. That same live run caught and led to
+fixing two real bugs invisible to unit tests alone (a lost-write race
+under LangGraph's concurrent tool-call execution, and a schema-signature
+drift caused by `score_items_tool` mutating the dataframe in place) -
+see section 12 for both.
 
 Decided (see `docs/requirements.md` §10 and `docs/progress.md`,
 "Architecture decisions made along the way"): the in-session memory/
@@ -147,11 +154,13 @@ Autonomus Agent/
     ├── agent.py                      model + create_deep_agent wiring + run()
     ├── agent_tools.py                @tool wrappers + sandbox lifecycle
     ├── prompts.py                    the system prompt
-    ├── store.py                      committed-state dicts + json_safe
+    ├── store.py                      committed-state dicts + json_safe (one run)
+    ├── long_term_memory.py           cross-session memory (FR-4.3), SqliteStore-backed
     ├── tools.py                      the plain, LLM-judgment-free functions
     ├── report.py                     writes per-run report/trace/results
     ├── sandbox_tool.py               E2B sandbox wrapper
     ├── outputs/                      generated per-run outputs (gitignored)
+    ├── memory/                       long-term memory db (gitignored)
     ├── data/                         sample CSVs for testing
     └── .env                          API keys (never commit this)
 ```
