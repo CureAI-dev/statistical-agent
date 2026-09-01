@@ -45,11 +45,54 @@ from agent_tools import (
     recommend_test_tool,
     run_code_tool,
     score_items_tool,
+    submit_plan_tool,
 )
-from prompts import SYSTEM_PROMPT
-from store import TOOL_CALLS
+from prompts import GATE_SYSTEM_PROMPT, SYSTEM_PROMPT
+from store import HANDLES, SANDBOX_PATHS, TOOL_CALLS
 
 load_dotenv()
+
+_FALLBACK_QUESTION = (
+    "Your request needs more detail before this file can be analyzed - "
+    "please restate what outcome, comparison, or grouping you want, "
+    "referencing the file's actual column names."
+)
+
+
+def _validate_plan_decision(decision: dict | None, handle_id: str) -> dict:
+    """Turn the gate phase's captured submit_plan_tool arguments into a
+    clean decision, defaulting to a clarifying question whenever the
+    model's call was missing, malformed, or never happened at all - fail
+    toward asking rather than silently guessing (see the design doc's
+    Error handling section)."""
+    if decision is None:
+        return {"status": "needs_clarification", "question": _FALLBACK_QUESTION}
+
+    status = decision.get("status")
+    if status == "needs_clarification" and decision.get("question"):
+        return {"status": "needs_clarification", "question": decision["question"]}
+    if (
+        status == "ready"
+        and decision.get("tasks")
+        and all(isinstance(t, dict) for t in decision["tasks"])
+    ):
+        return {
+            "status": "ready",
+            "handle_id": handle_id,
+            "assumption": decision.get("assumption"),
+            "tasks": decision["tasks"],
+        }
+    return {"status": "needs_clarification", "question": _FALLBACK_QUESTION}
+
+
+def _format_tasks(tasks: list[dict]) -> str:
+    """Render the committed task list as plain text for phase 2's opening
+    message."""
+    return "\n".join(
+        f"- [{task.get('status', 'pending')}] {task.get('step')}: {task.get('description', '')}"
+        for task in tasks
+    )
+
 
 # The model that decides which tool to call and when. gpt-4o-mini is cheap
 # and more than capable of this kind of tool-picking + summarizing task.
@@ -169,49 +212,237 @@ summarization_middleware = _LowTriggerSummarization(
     token_counter=token_counter,
 )
 
-# One call builds the whole "ask model -> run tool -> show result -> ask
-# again" loop for us (this is the "ReAct" agent pattern), plus the
-# summarization middleware above for compressing old messages once the
-# conversation gets long, instead of letting context grow unboundedly.
-agent_graph = create_deep_agent(
-    model=model,
-    tools=tools,
-    system_prompt=SYSTEM_PROMPT,
-    backend=backend,
-    middleware=[summarization_middleware],
-)
+
+def _run_gate_phase(file_path: str, question: str, assume_and_state: bool) -> dict:
+    """Run the restricted-tool gate phase: load the file, decide whether
+    the request is ambiguous, and capture the resulting decision straight
+    off the submit_plan_tool call's arguments - not by parsing prose.
+
+    Prints and accounts for this phase's trace/tokens/turns the same way
+    run()'s own phase-2 loop does, and returns them (trace_lines,
+    total_tokens, step_count) alongside the decision so run() can fold
+    them into whole-run totals instead of only ever reporting phase 2's
+    numbers - without this, gate-phase LLM turns/tokens never showed up
+    anywhere, gate-phase messages never appeared in trace.log, and a run
+    that ended in needs_clarification (spending real tokens) produced no
+    trace at all.
+    """
+    handle_id = Path(file_path).stem
+    gate_graph = create_deep_agent(
+        model=model,
+        tools=[read_excel_tool, profile_tool, submit_plan_tool],
+        system_prompt=GATE_SYSTEM_PROMPT,
+        backend=backend,
+    )
+    gate_message = (
+        f"Analyze the file at this path: {file_path}\n\n"
+        f"Question: {question}\n\n"
+        f"assume_and_state: {assume_and_state}"
+    )
+
+    decision = None
+    trace_lines: list[str] = []
+    total_tokens = {"input": 0, "output": 0, "total": 0}
+    step_count = 0
+    n_seen = 0
+    for step in gate_graph.stream(
+        {"messages": [{"role": "user", "content": gate_message}]},
+        stream_mode="values",
+    ):
+        # Same "only print/account for messages new since the last step"
+        # logic as phase 2's loop below - "values" mode re-yields the full
+        # accumulated message list every step.
+        messages = step["messages"]
+        new_messages = messages[n_seen:]
+        n_seen = len(messages)
+
+        for message in new_messages:
+            message.pretty_print()
+            trace_lines.append(message.pretty_repr())
+
+            usage = getattr(message, "usage_metadata", None)
+            if message.type == "ai" and usage:
+                step_count += 1
+                total_tokens["input"] += usage.get("input_tokens", 0)
+                total_tokens["output"] += usage.get("output_tokens", 0)
+                total_tokens["total"] += usage.get("total_tokens", 0)
+                tokens_line = (
+                    f"[tokens this call: {usage.get('input_tokens', 0)} in / "
+                    f"{usage.get('output_tokens', 0)} out -- "
+                    f"running total: {total_tokens['total']}]"
+                )
+                print(tokens_line)
+                trace_lines.append(tokens_line)
+
+            if message.type == "ai" and message.tool_calls:
+                for call in message.tool_calls:
+                    if call["name"] == "submit_plan_tool":
+                        decision = call["args"]
+
+        if decision is not None:
+            break
+
+    return {
+        "decision": _validate_plan_decision(decision, handle_id),
+        "trace_lines": trace_lines,
+        "total_tokens": total_tokens,
+        "step_count": step_count,
+    }
 
 
-def run(file_path: str, question: str) -> str:
+def run(file_path: str, question: str, assume_and_state: bool = False) -> dict:
     """Ask the agent to analyze `file_path` and answer `question`.
 
     Prints each step (tool calls, tool results, final answer) as it
     happens, so you can watch the agent's reasoning trace live, and writes
     the report/trace/results to outputs/<handle_id>/<timestamp>/ once done
-    (FR-8) so they survive after the process exits. Also tracks step count
-    and per-tool latency (NFR-5) alongside the existing token counting.
-    Returns the final plain-English answer.
+    (FR-8) so they survive after the process exits - including on the
+    needs_clarification path, so a run that spent real tokens but never
+    reached an answer still leaves a record. Also tracks step count and
+    per-tool latency (NFR-5) alongside the existing token counting, across
+    BOTH the gate phase and phase 2, not just phase 2.
+    Returns a dict: {'status': 'needs_clarification', 'question': str} or {'status': 'done', 'answer': str}.
     """
     handle_id = Path(file_path).stem
-    user_message = f"Analyze the file at this path: {file_path}\n\nQuestion: {question}"
 
     # Cleared here (not just at module load) so calling run() more than
     # once in the same process doesn't mix this run's tool latencies with
-    # a previous one's.
+    # a previous one's. Cleared before the gate phase runs so its tool
+    # calls count toward this run's totals too.
     TOOL_CALLS.clear()
 
     final_answer = ""
     total_tokens = {"input": 0, "output": 0, "total": 0}
     step_count = 0
     summarization_events = 0
-    last_summarization_event = None
     trace_lines: list[str] = []
-    n_seen = 0
+
+    # One try/finally spanning BOTH phases, not just phase 2's loop.
+    # _run_gate_phase (called first, below) always calls read_excel_tool,
+    # which unconditionally creates a real E2B sandbox and installs
+    # statsmodels into it - so the sandbox must close whichever way this
+    # function exits: needs_clarification (the common path per this
+    # project's own documented gate-phase limitation), a normal "done"
+    # return, or an exception raised anywhere in either phase (e.g. the
+    # gate phase's own graph erroring before ever calling
+    # submit_plan_tool). Without wrapping the gate-phase call too, the
+    # needs_clarification path returned before phase 2's try/finally even
+    # started, leaking a real, billable sandbox until E2B's own 20-minute
+    # timeout.
     try:
+        gate_output = _run_gate_phase(file_path, question, assume_and_state)
+        gate_result = gate_output["decision"]
+        trace_lines.extend(gate_output["trace_lines"])
+        for key in total_tokens:
+            total_tokens[key] += gate_output["total_tokens"][key]
+        step_count += gate_output["step_count"]
+
+        clarification_question = None
+        if gate_result["status"] == "needs_clarification":
+            clarification_question = gate_result["question"]
+        elif gate_result["handle_id"] not in HANDLES:
+            # status == "ready" but the model committed a plan without ever
+            # calling read_excel_tool first - nothing currently prevents
+            # that. There is no real sandbox_path to hand phase 2 in that
+            # case, so fail toward asking rather than seeding phase 2 with
+            # an empty sandbox_path alongside "don't call read_excel_tool
+            # again," which would be actively wrong advice here.
+            clarification_question = _FALLBACK_QUESTION
+
+        if clarification_question is not None:
+            print(f"\n=== Clarifying question ===\n{clarification_question}")
+            output_dir = write_outputs(
+                handle_id,
+                f"[needs_clarification] {clarification_question}",
+                trace_lines,
+                total_tokens,
+                step_count,
+                list(TOOL_CALLS),
+                summarization_events,
+            )
+            print(f"\n=== Outputs written to {output_dir} ===")
+            return {"status": "needs_clarification", "question": clarification_question}
+
+        sandbox_path = SANDBOX_PATHS.get(gate_result["handle_id"], "")
+        assumption_line = f"Assumption: {gate_result['assumption']}\n\n" if gate_result.get("assumption") else ""
+
+        # The file handle, question, assumption, and task list all go into
+        # phase 2's *system* prompt, not only the opening Human message - a
+        # live run surfaced that the summarization middleware can offload the
+        # opening message entirely (confirmed live: cutoff_index=3 after just
+        # the second tool-call cycle, on a run that stopped after 2 of 6
+        # task-list stages and never restated its assumption). A second live
+        # run, after moving the task list/assumption/question here, showed the
+        # SAME root cause hitting a second fact still left only in the opening
+        # message: handle_id/sandbox_path also got summarized away
+        # (cutoff_index=5 on the very first event), and with no tool call in
+        # this phase-2 conversation to re-derive sandbox_path (read_excel_tool
+        # is deliberately not called again here), the model guessed a
+        # plausible-looking but wrong path ("/sandbox/...") for run_code_tool
+        # instead - so it belongs in the same protected place. A system prompt
+        # is resent in full on every model call and is never part of the
+        # compactable message history (deepagents keeps it in
+        # request.system_message, separate from request.messages, which is
+        # all _determine_cutoff_index/_partition_messages ever touch) - baking
+        # all of this in here is what keeps it in view no matter how early or
+        # how often compaction fires. Building a fresh graph per run() call to
+        # do this mirrors the pattern _run_gate_phase already uses for its own
+        # per-call graph.
+        phase2_system_prompt = (
+            SYSTEM_PROMPT
+            + "\n\nThis run's file handle, question, assumption (if any), and "
+            "task list - restated here because the opening message carrying "
+            "the same detail can be summarized away mid-run, and this cannot:\n"
+            + f"handle_id: {gate_result['handle_id']}, sandbox_path: {sandbox_path}\n\n"
+            + f"Question: {question}\n\n"
+            + assumption_line
+            + f"Task list:\n{_format_tasks(gate_result['tasks'])}\n\n"
+            + "State any assumption above as the first line of your final "
+            "answer. Work through every task-list stage in order (skipping "
+            "only stages the list itself omits) before answering - if "
+            "conversation summarization compacts earlier tool results out of "
+            "view, the handle_id/sandbox_path and task list above still apply "
+            "in full and are not themselves a signal that the work is done."
+        )
+        run_graph = create_deep_agent(
+            model=model,
+            tools=tools,
+            system_prompt=phase2_system_prompt,
+            backend=backend,
+            middleware=[summarization_middleware],
+        )
+        # Deliberately NOT fully trimmed to just "Question: ...". A live
+        # A/B test during this fix wave showed the difference matters: with
+        # only "Question: ..." here (relying on phase2_system_prompt above
+        # to carry the "don't call read_excel_tool again" instruction plus
+        # handle_id/sandbox_path), the model called read_excel_tool again
+        # anyway on its very first phase-2 turn, with a bare filename
+        # (dropped the "data/" prefix), which doesn't resolve on the host
+        # filesystem and crashed the run - reproduced twice in a row. Put
+        # back exactly the same message with the explicit instruction and
+        # concrete handle_id/sandbox_path restored: with that in place, a
+        # third identical run called read_excel_tool exactly once (in phase
+        # 1) and completed normally. So although phase2_system_prompt does
+        # carry this same information in full (and survives compaction,
+        # which is why it lives there too), a small model's compliance with
+        # an instruction buried in a long static system prompt is not as
+        # reliable as the same instruction restated in the message it's
+        # actively responding to - keeping both is what's actually
+        # reliable, not redundant in practice even though it's redundant on
+        # paper.
+        user_message = (
+            f"This file is already loaded - do not call read_excel_tool again. "
+            f"handle_id: {gate_result['handle_id']}, sandbox_path: {sandbox_path}\n\n"
+            f"Question: {question}"
+        )
+
+        last_summarization_event = None
+        n_seen = 0
+
         # Passed inline (not pulled into a variable first) so the type
         # checker matches this dict literal against the exact shape
         # create_deep_agent expects, instead of just inferring "some dict".
-        for step in agent_graph.stream(
+        for step in run_graph.stream(
             {"messages": [{"role": "user", "content": user_message}]},
             stream_mode="values",
         ):
@@ -307,4 +538,4 @@ def run(file_path: str, question: str) -> str:
     )
     print(f"\n=== Outputs written to {output_dir} ===")
 
-    return final_answer
+    return {"status": "done", "answer": final_answer}

@@ -23,7 +23,15 @@ QUESTION = (
     "Present the findings clearly."
 )
 
+# This default call (assume_and_state=False) may return needs_clarification
+# instead of completing a full run - see docs/progress.md's FR-2 section
+# ("### 10. Plan parsing...") for the known gate-phase limitation. Pass
+# assume_and_state=True to run() below to see a full pipeline run instead.
 if __name__ == "__main__":
-    answer = run(FILE_PATH, QUESTION)
-    print("\n=== Final answer ===")
-    print(answer)
+    result = run(FILE_PATH, QUESTION)
+    if result["status"] == "needs_clarification":
+        print("\n=== Clarifying question ===")
+        print(result["question"])
+    else:
+        print("\n=== Final answer ===")
+        print(result["answer"])

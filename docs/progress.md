@@ -457,10 +457,161 @@ Satisfies: FR-1.4, FR-1.5 (partial - see scope note below)
   clear error; an `.xlsx` with a merged header cell correctly reported
   both `merged_cells` and `possible_multi_row_header`.
 
+### 10. Plan parsing and default clarifying question
+Satisfies: FR-2.1, FR-2.2, FR-2.3
+
+- `run()` (`agent.py`) now runs in two phases instead of one. Phase 1
+  (`_run_gate_phase`) builds a second, restricted-tool
+  `create_deep_agent` graph - only `read_excel_tool`, `profile_tool`, and
+  a new `submit_plan_tool` - that loads the file, profiles it, and judges
+  the request ambiguous-or-not against the file's real columns. It must
+  end by calling `submit_plan_tool`; `_run_gate_phase` reads that call's
+  arguments straight off the streamed `AIMessage.tool_calls` (never
+  parses prose) via `_validate_plan_decision`, which also defaults to a
+  clarifying question whenever the model's call was missing, malformed,
+  or never happened at all - fail toward asking rather than silently
+  guessing. Phase 2 - the existing full-tool agent, unchanged in
+  capability - only runs if phase 1 committed a task list rather than
+  asking a question; it's seeded with that list (rendered by
+  `_format_tasks`) plus the assumption line, `handle_id`, and
+  `sandbox_path`.
+- New: `submit_plan_tool` (`agent_tools.py`) - the gate phase's
+  decision-commit tool, same suggest-then-commit-via-tool-call idiom as
+  `classify_columns_tool`/`infer_scale_tool`/`group_items_tool`.
+  `GATE_SYSTEM_PROMPT` (`prompts.py`) - the gate phase's system prompt,
+  plus one paragraph appended to the existing `SYSTEM_PROMPT` telling
+  phase 2 not to reload the file and to state a plan revision plainly
+  (FR-2.3) if a tool result contradicts a task-list assumption, rather
+  than push through silently. `_validate_plan_decision`/`_format_tasks`
+  (`agent.py`) - pure helper functions. `assume_and_state: bool = False`
+  - new `run()` parameter, read only by the gate phase's prompt.
+- `run()`'s return type changed from a plain string to a dict:
+  `{"status": "needs_clarification", "question": str}` or
+  `{"status": "done", "answer": str}`. `main.py`'s smoke test updated to
+  branch on this.
+- Verified live end to end against the nurses file. With
+  `assume_and_state=False` and the generic question "Analyze this
+  file.", the gate phase called only the 3 restricted tools (confirmed
+  at the time by a message-id-deduped diagnostic trace of the stream -
+  now checkable directly from the gate phase's own shipped `trace.log`,
+  see the fix-wave note below) and returned a clarifying
+  question grounded in the file's real content ("perceived stress and
+  coping strategies... emotional responses and demographic
+  information"), not a generic "please clarify." With
+  `assume_and_state=True`, same question: the gate committed a 6-stage
+  task list (classify/infer_scale/group/score/test/report) plus an
+  assumption, and phase 2 ran the full pipeline for real - all 22
+  columns classified, all 10 Likert items scaled, two subscales
+  committed (Stress alpha 0.832, Coping alpha 0.35), Shapiro-Wilk
+  normality checks on both (p=0.112, p=0.465), `recommend_test_tool`
+  correctly picking an independent t-test, a real
+  `scipy.stats.ttest_ind` call (statistic -1.005, p=0.317), and a final
+  answer that restates the assumption as its literal first line with
+  every number traceable to a real tool result - 8 LLM turns, 21 tool
+  calls, 47,492 tokens, 4 summarization events survived mid-run without
+  losing the plan (that count was phase-2 only at the time - see the
+  fix-wave note below for the corrected, whole-run figures).
+- Fixed during the FR-2 final fix wave (2026-09-01): the turn/tool-call/
+  token/summarization-event counts just above were phase-2-only -
+  `_run_gate_phase` did no trace-printing or token-counting of its own,
+  so gate-phase LLM turns/tokens never showed up in `total_tokens`/
+  `step_count`, gate-phase messages never appeared in `trace.log`, and
+  on the `needs_clarification` path `write_outputs` never ran at all -
+  a run that spent real tokens deciding to ask a question left no
+  output files behind. `_run_gate_phase` now traces and counts itself
+  the same way phase 2's loop already did, and returns that to `run()`,
+  which folds both phases into one set of whole-run totals and calls
+  `write_outputs` on both the `needs_clarification` and `done` paths.
+  Also fixed in the same pass: `run()`'s `try`/`finally: close_sandbox()`
+  used to wrap only phase 2's loop, so the (common, given the limitation
+  noted below) `needs_clarification` return left a real, billable E2B
+  sandbox open until its own 20-minute timeout - one `try`/`finally` now
+  wraps the gate phase call and phase 2 together, closing the sandbox on
+  every exit path (`needs_clarification`, `done`, or an unhandled
+  exception in either phase), confirmed live. Re-verified live end to
+  end (same file, same canonical question, `assume_and_state=True`):
+  `trace.log` now opens with the gate phase's own messages (the
+  `Analyze the file at this path...` prompt through its
+  `submit_plan_tool` call) instead of starting mid-run at phase 2, and
+  the printed summary/`results.json` now cover the whole run - 53 LLM
+  turns, 105 tool calls, 346,032 tokens (336,266 in / 9,766 out), 43
+  summarization events. (This particular re-verification run's own tool
+  mix - `infer_scale_tool` called 56 times against only 10 Likert items,
+  and a final answer that reported the logistic regression but not every
+  stage - reproduced a milder version of the retry-loop pattern and the
+  incomplete-final-answer pattern already documented elsewhere in this
+  file as known `gpt-4o-mini` reliability gaps, not a regression from
+  this fix wave. To be clear about which factor drove the 47,492 ->
+  346,032 jump: phase 1 itself only contributes ~8,563 tokens / 3 turns
+  (measured on a separate `needs_clarification` run) - the other
+  ~290,000 tokens are run-to-run `gpt-4o-mini` variance on phase 2, not
+  the accounting fix.)
+- Fixed along the way: the task list and assumption, originally placed
+  only in phase 2's opening Human message, were being silently lost to
+  the pre-existing summarization middleware (`trigger=8000` tokens, from
+  the FR-5/FR-6 milestone - section 7 above) after just ~2 tool-call
+  cycles - the model answered from a compressed summary, completing only
+  2 of 6 task-list stages with no assumption stated and no signal of
+  this in the return value. Root-caused via `deepagents`'s own source:
+  the middleware's cutoff logic only ever touches `request.messages`,
+  never `request.system_message`. Fixed by moving the task list,
+  assumption, `handle_id`, and `sandbox_path` into phase 2's system
+  prompt instead (built per-`run()`-call now, since it's no longer
+  static - the old module-level `agent_graph` singleton was removed,
+  first confirmed unreferenced anywhere else in the codebase). Re-
+  verified live: full 6-stage completion survives 4 summarization events
+  in the same run (numbers above).
+- Fixed along the way: the gate phase's ambiguity clause 2 (in
+  `GATE_SYSTEM_PROMPT`) was flagging this project's own canonical
+  smoke-test question as ambiguous purely for using generic domain
+  language like "the Likert items"/"the stress items" - exactly the
+  phrasing `classify_columns_tool`/`group_items_tool` exist to make
+  unnecessary - this project's whole survey-mode design (FR-9.1/FR-9.2,
+  section 5/6 above) is built so the user never has to enumerate Likert
+  items by name or hand them a scale. Root cause: the clause's literal word
+  "grouping" was matching any mention of grouping items into subscales,
+  not just a genuinely unresolved comparison/prediction target. Fixed
+  with a carve-out stating that a generic Likert/subscale/construct
+  reference, or a not-yet-computed subscale score used as a test input,
+  never counts as ambiguity under this clause. Verified across 11 live
+  trials: the specific "grouping" framing never recurs, and a genuinely
+  ambiguous control question ("compare the outcomes between the two
+  groups" with no named grouping column) still correctly gets flagged.
+- Known limitation, not a code bug: even after that fix, the canonical
+  smoke-test question does not reliably pass through the gate. The
+  direct before/after comparison - Task 5's pre-fix baseline trial
+  (before this ambiguity-clause fix existed) and the shipped fix's own
+  final live re-verification - returned `needs_clarification`, never
+  `ready`, both times, both still over a generic Likert-column-
+  identification framing ("which columns are/you consider Likert
+  items"). Nine further trials run while iterating toward that fix
+  (prompt versions V1 through V6, each a discarded candidate wording,
+  not the shipped code) also returned `needs_clarification` every time,
+  citing a wider range of generic-Likert-phrasing reasons across
+  versions (item correlation/reverse-coding, confirming already-named
+  columns, a wrongly-claimed missing outcome variable) - supporting
+  evidence that no version tried moved the needle, though those test
+  in-progress wordings rather than what actually shipped. Investigated
+  across 6 prompt iterations; judged the same class of small-model
+  (`gpt-4o-mini`) judgment-reliability gap already documented elsewhere
+  in this file (reverse-coding inconsistency under section 7, the old
+  `infer_scale_tool` retry loop) rather than a
+  residual wording gap - further prompt tuning showed no trend toward
+  reliability across the iterations tried. Consistent with this
+  project's precedent of accepting this class of limitation rather than
+  chasing it indefinitely with more prompting.
+- Not yet separately verified: FR-2.3's re-plan instruction (the
+  appended `SYSTEM_PROMPT` paragraph) is the intended catch for
+  structural ambiguity that's only visible after column classification -
+  deeper than what phase 1 can see, since phase 1 has no classification
+  tool and only ever sees `read_excel_tool`/`profile_tool` output. No
+  live run so far has actually surfaced a mid-task contradiction for the
+  agent to react to; this is a real, by-design gap in phase 1 (noted in
+  the design doc's Risks section), not something covered by the
+  verifications above.
+
 ## Not built yet
 
-- **FR-2**: parsing the analysis plan into an ordered, typed task list;
-  asking a clarifying question by default when the plan is ambiguous.
 - **FR-4.3**: persistent long-term memory across separate runs (schemas,
   cleaning routines, preferences, prior conclusions surviving between
   separate `uv run` invocations). The in-session part (FR-5/FR-6,

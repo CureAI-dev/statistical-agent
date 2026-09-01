@@ -174,4 +174,8 @@ Autonomus Agent/
 cd excel-analysis-agent-backend
 uv run main.py
 ```
-Needs `E2B_API_KEY` and `OPENAI_API_KEY` set in `.env`.
+Needs `E2B_API_KEY` and `OPENAI_API_KEY` set in `.env`. The default call
+uses `assume_and_state=False`, so it may return a clarifying question
+instead of completing (see `docs/progress.md`'s FR-2 section for the
+known gate-phase limitation) - pass `assume_and_state=True` to `run()`
+to see a full pipeline run.
