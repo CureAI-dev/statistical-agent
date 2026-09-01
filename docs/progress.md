@@ -541,7 +541,11 @@ Satisfies: FR-2.1, FR-2.2, FR-2.3
   stage - reproduced a milder version of the retry-loop pattern and the
   incomplete-final-answer pattern already documented elsewhere in this
   file as known `gpt-4o-mini` reliability gaps, not a regression from
-  this fix wave.)
+  this fix wave. To be clear about which factor drove the 47,492 ->
+  346,032 jump: phase 1 itself only contributes ~8,563 tokens / 3 turns
+  (measured on a separate `needs_clarification` run) - the other
+  ~290,000 tokens are run-to-run `gpt-4o-mini` variance on phase 2, not
+  the accounting fix.)
 - Fixed along the way: the task list and assumption, originally placed
   only in phase 2's opening Human message, were being silently lost to
   the pre-existing summarization middleware (`trigger=8000` tokens, from
