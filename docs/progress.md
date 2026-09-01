@@ -365,6 +365,46 @@ Satisfies: FR-9.4, FR-9.5, FR-9.6
     entries above. `results.json` now also records `summarization_events`
     per run (NFR-5/FR-8 style observability, alongside step count and
     tool latency).
+  - **2026-09-01, reverse-coding diagnostic added**: the known limitation
+    above (small model doesn't reliably notice a low alpha and go fix the
+    responsible item) got a code-level assist instead of more prompt
+    tuning. `tools.py: score_items()` now also computes each item's
+    corrected item-total correlation (its score vs. the sum of the *rest*
+    of its group, a standard reliability-analysis diagnostic) and returns
+    `item_total_correlations` plus `likely_reverse_coded_items` (items
+    with negative item-total correlation) in its summary per group. This
+    follows the same division of labor as `group_items`'s correlation
+    matrix and `infer_scale`'s `reverse_coded`: the tool computes a
+    deterministic signal from the data, never the judgment itself - it
+    still doesn't decide *why* an item is negatively correlated or flip
+    anything, that stays the agent's call after reading the item's
+    wording. `SYSTEM_PROMPT` now points the agent at
+    `likely_reverse_coded_items` directly (named columns to start from,
+    instead of "alpha is low, go find the cause somewhere in the group"),
+    and explicitly allows keeping an item as-is if its wording genuinely
+    doesn't support flipping, so the agent isn't pushed to force a flip
+    just to chase a higher alpha. Verified with a synthetic
+    four-item/200-row group (three correlated items, one deliberately
+    inverted): correctly isolated the single wrong item
+    (`item_total_correlations` -0.853 vs. ~0.6-0.85 for the other three,
+    `cronbachs_alpha` -0.139) instead of leaving the agent to guess among
+    all four; a clean three-item group returned an empty
+    `likely_reverse_coded_items` with alpha 0.915 (no false positives);
+    a single-item group returned `null` correlation with no crash.
+    **2026-09-01, re-verified end to end on a real agent run** (nurses
+    file, `assume_and_state=True`): first `score_items_tool` call came
+    back `cronbachs_alpha: 0.381`, `likely_reverse_coded_items` naming
+    exactly the 4 items that are the PSS-10's known reverse-scored items
+    ("felt confident", "things were going your way", "control
+    irritations", "on top of things"). The agent's very next tool calls
+    were 4 `infer_scale_tool` calls, one per named item, each with
+    `reverse_coded: True` explicitly set - it read the field and acted on
+    it directly instead of re-scanning all 10 items. Re-running
+    `score_items_tool` then returned `cronbachs_alpha: 0.841`,
+    `likely_reverse_coded_items: []`. Confirms the fix does what it was
+    built for: turns "alpha is low, go find the cause somewhere in the
+    group" into "here are the exact columns," and the agent used that
+    directly rather than ignoring it.
 
 ### 8. Report and artifact output
 Satisfies: FR-8.1, FR-8.2, FR-8.3; partially contributes to NFR-2
