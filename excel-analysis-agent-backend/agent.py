@@ -96,7 +96,13 @@ def _format_tasks(tasks: list[dict]) -> str:
 
 # The model that decides which tool to call and when. gpt-4o-mini is cheap
 # and more than capable of this kind of tool-picking + summarizing task.
-model = ChatOpenAI(model="gpt-4o-mini")
+# temperature=0 (NFR-1): the default temperature is 1.0, which lets the
+# same file+plan produce a different tool call, argument, or judgment call
+# (e.g. a reverse-coding decision) on every re-run. 0 doesn't make the
+# model literally deterministic (OpenAI's own backend can still vary
+# slightly run to run), but it's the closest this project can get without
+# switching providers, and removes the biggest source of run-to-run drift.
+model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 # deepagents ships a default tool suite of its own (ls/read_file/write_file/
 # edit_file/delete/glob/grep for a virtual filesystem, execute for shell

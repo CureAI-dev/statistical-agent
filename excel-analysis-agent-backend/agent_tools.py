@@ -19,7 +19,9 @@ run_code_tool call picks it up just by re-reading the CSV.
 Every tool below is wrapped with @_timed (applied under @tool, so it
 times the plain function before @tool turns it into a schema) recording
 each call's wall-clock time into store.TOOL_CALLS - NFR-5's per-tool
-latency requirement.
+latency requirement - and with @_with_retry underneath that, retrying an
+unexpected exception with backoff before giving up and returning an
+{"error": ...} dict instead of crashing the run - NFR-6.
 """
 
 import functools
@@ -46,6 +48,15 @@ from tools import (
 _sandbox: Runtime | None = None
 
 MAX_OUTPUT_CHARS = 2000
+
+# NFR-6: retry with backoff on tool failure before giving up. Every tool
+# below already returns an {"error": ...} dict for its own expected
+# failure modes (missing handle_id, missing column, ...) instead of
+# raising - an actual exception here means something unexpected happened
+# (e.g. a transient E2B/network hiccup), which is exactly what's worth
+# retrying.
+MAX_TOOL_RETRIES = 3
+RETRY_BACKOFF_BASE_SECONDS = 1
 
 
 def _get_sandbox() -> Runtime:
@@ -90,6 +101,34 @@ def _timed(func):
     return wrapper
 
 
+def _with_retry(func):
+    """Retry an unexpected exception with exponential backoff
+    (MAX_TOOL_RETRIES attempts, RETRY_BACKOFF_BASE_SECONDS * 2**attempt
+    between them) before giving up. Applied under @_timed (so a retried
+    call's full latency, backoff included, still lands in TOOL_CALLS) and
+    over the raw function (so @tool still sees the original name/
+    docstring/signature via functools.wraps). Returns an {"error": ...}
+    dict on final failure instead of letting the exception reach the
+    agent loop - one flaky tool call must not crash the whole run
+    (NFR-6); the agent sees the same error-dict shape it already knows
+    how to react to (report the failure, keep going) for every other
+    expected failure mode in this file."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        last_error = None
+        for attempt in range(MAX_TOOL_RETRIES):
+            try:
+                return func(*args, **kwargs)
+            except Exception as exc:
+                last_error = exc
+                if attempt < MAX_TOOL_RETRIES - 1:
+                    time.sleep(RETRY_BACKOFF_BASE_SECONDS * (2**attempt))
+        return {"error": f"{func.__name__} failed after {MAX_TOOL_RETRIES} attempts: {last_error}"}
+
+    return wrapper
+
+
 def _truncate(text: str) -> str:
     """Cap tool output before it enters the model's context (FR-5.3) -
     without this, a long print() from the model's own code could blow the
@@ -102,6 +141,7 @@ def _truncate(text: str) -> str:
 
 @tool
 @_timed
+@_with_retry
 def read_excel_tool(path: str, sheet: str | int = 0) -> dict:
     """Load an Excel or CSV file so it can be analyzed.
 
@@ -161,6 +201,7 @@ def read_excel_tool(path: str, sheet: str | int = 0) -> dict:
 
 @tool
 @_timed
+@_with_retry
 def profile_tool(handle_id: str) -> dict:
     """Inspect a previously loaded file: column types, null counts, basic
     numeric stats, and a few sample rows.
@@ -179,6 +220,7 @@ def profile_tool(handle_id: str) -> dict:
 
 @tool
 @_timed
+@_with_retry
 def run_code_tool(code: str) -> dict:
     """Run Python code in a sandbox to compute, filter, or transform data -
     pandas and numpy are available. Use this for anything profile_tool
@@ -205,6 +247,7 @@ def run_code_tool(code: str) -> dict:
 
 @tool
 @_timed
+@_with_retry
 def recommend_test_tool(
     question_type: str,
     is_normal: bool = True,
@@ -239,6 +282,7 @@ def recommend_test_tool(
 
 @tool
 @_timed
+@_with_retry
 def classify_columns_tool(handle_id: str, overrides: dict[str, str] | None = None) -> dict:
     """Classify every column in a loaded file as likert, categorical,
     open_ended, identifier, or continuous.
@@ -278,6 +322,7 @@ def classify_columns_tool(handle_id: str, overrides: dict[str, str] | None = Non
 
 @tool
 @_timed
+@_with_retry
 def infer_scale_tool(
     handle_id: str,
     col: str,
@@ -332,6 +377,7 @@ def infer_scale_tool(
 
 @tool
 @_timed
+@_with_retry
 def group_items_tool(
     handle_id: str,
     groups: dict[str, list[str]] | None = None,
@@ -392,6 +438,7 @@ def group_items_tool(
 
 @tool
 @_timed
+@_with_retry
 def score_items_tool(handle_id: str, groups: list[str] | None = None) -> dict:
     """Compute each committed subscale's per-respondent score and
     Cronbach's alpha, and write the new score column(s) into the working
@@ -441,6 +488,7 @@ def score_items_tool(handle_id: str, groups: list[str] | None = None) -> dict:
 
 @tool
 @_timed
+@_with_retry
 def submit_plan_tool(
     status: str,
     question: str | None = None,
