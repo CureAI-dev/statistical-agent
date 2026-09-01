@@ -340,6 +340,33 @@ def _cronbachs_alpha(item_scores: pd.DataFrame) -> float | None:
     return round(float((k / (k - 1)) * (1 - item_variance_sum / total_variance)), 3)
 
 
+def _item_total_correlations(item_scores: pd.DataFrame) -> dict[str, float | None]:
+    """Corrected item-total correlation: each item's correlation with the
+    sum of the *other* items in its group (excluding itself, to avoid the
+    spurious positive bias of correlating an item against a total that
+    already includes it). Standard reliability-analysis diagnostic - a
+    negative value flags an item moving opposite to the rest of the group,
+    which in practice is almost always a reverse-coding mistake, not a
+    sign the item doesn't belong. This only measures the symptom; like
+    group_items's correlation matrix, it never decides *why* or fixes
+    anything - that judgment (does the wording actually support flipping
+    it) stays with the caller, same division of labor as reverse_coded
+    everywhere else in this file. None where variance is zero or there's
+    only one item (correlation is undefined)."""
+    k = item_scores.shape[1]
+    correlations: dict[str, float | None] = {}
+    for col in item_scores.columns:
+        if k < 2:
+            correlations[col] = None
+            continue
+        rest_total = item_scores.drop(columns=col).sum(axis=1)
+        if item_scores[col].std(ddof=1) == 0 or rest_total.std(ddof=1) == 0:
+            correlations[col] = None
+            continue
+        correlations[col] = round(float(item_scores[col].corr(rest_total)), 3)
+    return correlations
+
+
 def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, dict]) -> dict:
     """Compute a per-respondent subscale score (mean of each item's
     reverse-coded score) and Cronbach's alpha for each group
@@ -359,6 +386,7 @@ def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, di
         subscale_score = item_scores.mean(axis=1)
         score_column = f"{group_name}_score"
         new_columns[score_column] = subscale_score
+        item_total_correlations = _item_total_correlations(item_scores)
         summary[group_name] = {
             # Spelled out explicitly (not left for the caller to
             # reconstruct from group_name) so the model can't typo or
@@ -369,6 +397,12 @@ def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, di
             "cronbachs_alpha": _cronbachs_alpha(item_scores),
             "mean": float(subscale_score.mean()),
             "std": float(subscale_score.std()),
+            "item_total_correlations": item_total_correlations,
+            # Named directly instead of leaving the caller to notice a low
+            # alpha and go hunting for the cause - see docstring above.
+            "likely_reverse_coded_items": [
+                col for col, corr in item_total_correlations.items() if corr is not None and corr < 0
+            ],
         }
 
     return {"new_columns": new_columns, "summary": summary}
