@@ -66,8 +66,11 @@ far, by file:
   Every tool is also wrapped with `_timed` (applied under `@tool`, so it
   times the plain function `@tool` reads to build its schema) recording
   each call into `store.TOOL_CALLS`.
-- `agent.py`: ~170 lines - the model, the `deepagents.create_deep_agent`
-  wiring (eight of our own tools, plus that package's built-in
+- `agent.py`: ~635 lines (grew from the ~170 noted here originally, once
+  the FR-2 gate phase and FR-4.3 long-term memory pieces were added - see
+  `docs/progress.md` for that history, and `docs/improvement-plan.md` for
+  a note on splitting this file up) - the model, the
+  `deepagents.create_deep_agent` wiring (ten of our own tools, plus that package's built-in
   summarization middleware for compressing old messages once a
   conversation gets long), a harness-profile registration that excludes
   the deepagents built-in filesystem/subagent tools this project doesn't
