@@ -640,15 +640,96 @@ Satisfies: FR-2.1, FR-2.2, FR-2.3
   reliability across the iterations tried. Consistent with this
   project's precedent of accepting this class of limitation rather than
   chasing it indefinitely with more prompting.
-- Not yet separately verified: FR-2.3's re-plan instruction (the
-  appended `SYSTEM_PROMPT` paragraph) is the intended catch for
-  structural ambiguity that's only visible after column classification -
-  deeper than what phase 1 can see, since phase 1 has no classification
-  tool and only ever sees `read_excel_tool`/`profile_tool` output. No
-  live run so far has actually surfaced a mid-task contradiction for the
-  agent to react to; this is a real, by-design gap in phase 1 (noted in
-  the design doc's Risks section), not something covered by the
-  verifications above.
+- **2026-09-01, FR-2.3 re-plan instruction verified live - negative
+  result.** The appended `SYSTEM_PROMPT` paragraph (the intended catch
+  for a mid-task observation that invalidates the plan - structural
+  ambiguity only visible after column classification, deeper than what
+  phase 1's `read_excel_tool`/`profile_tool`-only view can see) had never
+  been exercised by a live run before now. Built a deliberate test: a
+  copy of the nurses file with `Have you been admitted to hospital for
+  this condition before?` forced to a single constant value (`"No"`,
+  all 50 rows) - column name/dtype unchanged, so phase 1's ambiguity
+  check (which only flags a *named* column that isn't in the real column
+  list) has no way to see the problem, but the canonical question (same
+  one `main.py` uses, `assume_and_state=True`) still asks to predict that
+  column via logistic regression - a real "expected column [is
+  unusable as planned]" case, the same class of thing FR-2.3's own
+  example ("an expected column is missing") describes. Result: the
+  contradiction *was* visible on the data well before the regression
+  ran - `classify_columns_tool`'s own result reported
+  `"n_unique": 1, "top_values": {"No": 50}` for that column early in the
+  run - but the agent never said so in a message. It worked straight
+  through classify -> group -> infer_scale -> score -> chi-square ->
+  logistic regression, ran the regression anyway, got
+  `PerfectSeparationWarning`/non-convergence back from statsmodels, and
+  only surfaced the problem inside the *final* answer's "Next Steps"
+  section - not as a message stated "before continuing," which is what
+  the instruction actually asks for. **So FR-2.3 is implemented but not
+  followed**: the instruction exists and the model had the exact signal
+  needed to act on it four tool calls before the failure, but a small
+  model doesn't reliably read the crossover from "this tool result" to
+  "this contradicts my task list, I should say so now" - the same class
+  of small-model follow-through gap already documented elsewhere in this
+  file (reverse-coding, section 7; the old `infer_scale_tool` retry
+  loop), not a new code bug. **One thing this run did get right**: no
+  fabrication - the final answer honestly reported the non-convergence
+  and why, instead of inventing a plausible-looking coefficient/p-value,
+  consistent with the separate hard-fabrication rule in `SYSTEM_PROMPT`
+  (verified working correctly here, distinct from the FR-2.3 result
+  itself). **Side finding, not chased further**: this run also cost far
+  more than a typical nurses-file run - 101 LLM turns, 108 tool calls,
+  680,990 tokens, 94 summarization events (vs. the usual few dozen turns
+  and well under 100k tokens) - because `infer_scale_tool` got called 90
+  times instead of the expected ~10 (one full pass per Likert item,
+  repeated roughly 9 times over). Args were legitimately different each
+  time (cycling through all 10 items, not one column repeated
+  identically), so this isn't the old exact-repeat retry bug already
+  fixed - more likely heavy summarization (94 events, far more than any
+  run before it) repeatedly evicting the "these items already have a
+  committed scale" context, so the model kept re-deriving it. Notable
+  because it's a new-looking interaction between two already-shipped
+  fixes (recall_memory_tool's "don't re-derive what's committed"
+  instruction and the low-trigger summarization middleware) rather than
+  either one alone, but out of scope for this verification task - noted
+  here for a future pass, not fixed now.
+- **2026-09-01, FR-2.3 follow-through fixed - same pattern as section 7's
+  reverse-coding diagnostic.** The negative result above wasn't that the
+  signal was missing - `classify_columns_tool` already returned
+  `n_unique: 1` for the broken column - it's that a small model doesn't
+  reliably connect a raw number buried among 22 columns' worth of stats
+  to "this contradicts my plan, say so now," the same gap already fixed
+  once for reverse-coding by naming the problem columns directly instead
+  of leaving the model to notice a number. Applied the identical fix
+  here: `classify_columns_tool` (`agent_tools.py`) now also returns
+  `low_variance_columns` - every column where all non-null values are
+  identical (`n_unique <= 1`), computed from the already-committed
+  per-column info, not folded into `CLASSIFICATIONS` itself (that has to
+  stay a flat `{column: info}` dict - `group_items_tool` iterates it
+  expecting every value to be a column's info - so the extra field is
+  added only to what's returned to the model, not to what's stored).
+  `SYSTEM_PROMPT` now tells the agent that a column named in
+  `low_variance_columns` can't be a usable outcome/predictor for any
+  test, and if the question asks it to use one anyway, that's exactly
+  the mid-task contradiction the prompt's existing FR-2.3 paragraph
+  describes - say so before running the step, not after. **Verified
+  live**, deliberately on a different, much smaller file than the
+  negative-result run above (3 columns - Age, Sex, and a constant
+  `Admitted` - no Likert items at all) specifically to isolate this fix
+  from the unrelated `infer_scale_tool`/summarization noise the nurses
+  file introduces. Result: `classify_columns_tool` returned
+  `"low_variance_columns": ["Admitted"]`, and the agent's very next
+  message - before attempting the regression, not after - stated
+  "Since the 'Admitted' column has low variance (all entries are 'No'),
+  it cannot be used as an outcome variable in a logistic regression.
+  Therefore, I cannot proceed with the logistic regression analysis as
+  planned," then stopped and asked for an alternative instead of running
+  a broken regression and reporting the failure after the fact. 7 LLM
+  turns, 5 tool calls, 29,185 tokens - cheap, and a clean before/after
+  contrast against the same class of file corruption from the negative
+  result. Not yet re-verified on a file that also has Likert items (where
+  the fix has to compete with the summarization-interaction noise noted
+  above) - that combination is the harder, more expensive case and
+  wasn't re-run here to keep this verification's cost down.
 
 ### 11. Tool retry-with-backoff and run-to-run reproducibility
 Satisfies: NFR-6 (built); NFR-1 (partial - see below)
@@ -798,6 +879,13 @@ Satisfies: FR-4.3 (built, verified live end to end); FR-4.4 (built)
   large files) is now partially covered by section 8's read-step
   chunking, scoped down to just the read + profile step - see that
   section's scope note.
+- **FR-2.3**: fixed and verified for the zero-variance-column case (a
+  `low_variance_columns` signal on `classify_columns_tool`, same pattern
+  as section 7's reverse-coding diagnostic) - see section 10's two newest
+  entries for the negative result and the fix. Not yet verified on a file
+  that combines this with real Likert items, where it has to compete with
+  the summarization-interaction noise also found during this same pass
+  (see section 10) - that combination is untested.
 
 ## Architecture decisions made along the way
 
