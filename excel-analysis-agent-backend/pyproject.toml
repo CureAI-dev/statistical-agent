@@ -15,3 +15,24 @@ dependencies = [
     "pandas>=3.0.5",
     "python-dotenv>=1.2.3",
 ]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# This project's modules (tools.py, agent.py, ...) live at the repo root,
+# not under a src/ layout - without this, pytest's default rootless import
+# mode only puts each test file's own directory (tests/) on sys.path, so
+# `import tools` etc. fails to resolve.
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+
+[tool.mypy]
+ignore_missing_imports = true
