@@ -1,0 +1,5 @@
+# Internal review notes, not meant to be committed source. Lives here (repo
+# root) rather than in excel-analysis-agent-backend/.gitignore because that
+# file's rules only reach inside its own directory - this doc is in the
+# top-level docs/ folder instead.
+docs/improvement-plan.md

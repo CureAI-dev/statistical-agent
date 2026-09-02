@@ -1,5 +1,6 @@
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 # Above this size (docs/requirements.md FR-1.4), CSV reads switch from one
 # shot to chunked so peak memory grows with CHUNK_ROWS at a time instead of
@@ -29,7 +30,7 @@ def _detect_structural_issues(file_path: Path, df: pd.DataFrame) -> dict:
     multi-row header (Excel only) are only reported, never auto-fixed -
     deciding how to handle those needs the same kind of judgment as
     reverse-coding (see infer_scale), so it's left to the caller."""
-    issues = {}
+    issues: dict[str, int | str | list[str]] = {}
 
     blank_rows = df.index[df.isnull().all(axis=1)]
     if len(blank_rows):
@@ -147,6 +148,10 @@ def recommend_test(
     small_expected_counts: whether a categorical crosstab has any expected
         cell count under 5 (relevant for association only).
     """
+    # _TEST_TABLE's keys aren't all the same shape (2-tuple vs. 3-tuple), so
+    # `key` has to be declared as whichever shape each branch below actually
+    # builds, not left for mypy to infer from just the first branch.
+    key: tuple[str, int | str, bool] | tuple[str, bool] | tuple[str]
     if question_type == "compare_groups":
         group_key = 2 if n_groups <= 2 else "many"
         key = (question_type, group_key, is_normal)
@@ -329,9 +334,15 @@ def group_items(handle: dict, cols: list[str], scales: dict[str, dict]) -> dict:
 def _cronbachs_alpha(item_scores: pd.DataFrame) -> float | None:
     """Standard Cronbach's alpha: how well a group of items hangs together
     as one scale, from k/(k-1) * (1 - sum of item variances / variance of
-    the summed score). Undefined for fewer than two items."""
+    the summed score). Undefined for fewer than two items, or fewer than
+    two respondents.
+
+    `item_scores` must already be complete cases (no missing items) - see
+    score_items's docstring for why: a respondent with 1 of 5 items missing
+    would otherwise contribute a smaller "total" via pandas' default
+    skip-NaN sum, silently biasing the variance both terms are built from."""
     k = item_scores.shape[1]
-    if k < 2:
+    if k < 2 or len(item_scores) < 2:
         return None
     item_variance_sum = item_scores.var(axis=0, ddof=1).sum()
     total_variance = item_scores.sum(axis=1).var(ddof=1)
@@ -351,12 +362,14 @@ def _item_total_correlations(item_scores: pd.DataFrame) -> dict[str, float | Non
     group_items's correlation matrix, it never decides *why* or fixes
     anything - that judgment (does the wording actually support flipping
     it) stays with the caller, same division of labor as reverse_coded
-    everywhere else in this file. None where variance is zero or there's
-    only one item (correlation is undefined)."""
+    everywhere else in this file. None where variance is zero, there's
+    only one item, or fewer than two respondents (correlation is
+    undefined). `item_scores` must already be complete cases - same reason
+    as _cronbachs_alpha above."""
     k = item_scores.shape[1]
     correlations: dict[str, float | None] = {}
     for col in item_scores.columns:
-        if k < 2:
+        if k < 2 or len(item_scores) < 2:
             correlations[col] = None
             continue
         rest_total = item_scores.drop(columns=col).sum(axis=1)
@@ -372,6 +385,23 @@ def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, di
     reverse-coded score) and Cronbach's alpha for each group
     (docs/requirements.md FR-9.5/FR-9.6).
 
+    The per-respondent score is the mean of whatever items that respondent
+    answered (pandas' default skip-NaN mean) - a legitimate, common
+    "prorated" scoring convention, left as-is rather than imposing a
+    stricter complete-cases-only policy this project has no stated
+    preference between. But Cronbach's alpha and the item-total-correlation
+    diagnostic are NOT computed the same way: both compare each
+    respondent's item total against everyone else's, and mixing in a
+    respondent who only answered 2 of 5 items (whose "total" would
+    otherwise silently be just the sum of those 2, via the same skip-NaN
+    behavior) biases the variance both statistics are built from - a
+    respondent with less data would silently look more or less consistent
+    than one who answered everything. So both are computed on complete
+    cases only (every item in the group answered), and n_incomplete_
+    respondents in the summary reports how many rows that excluded, so a
+    low completeness rate is visible instead of silently baked into the
+    numbers.
+
     Returns the new score column per group (as real pandas Series, for the
     caller to write into the working dataframe) plus summary stats and
     reliability - never the full per-respondent list, to keep the model's
@@ -386,7 +416,9 @@ def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, di
         subscale_score = item_scores.mean(axis=1)
         score_column = f"{group_name}_score"
         new_columns[score_column] = subscale_score
-        item_total_correlations = _item_total_correlations(item_scores)
+
+        complete = item_scores.dropna()
+        item_total_correlations = _item_total_correlations(complete)
         summary[group_name] = {
             # Spelled out explicitly (not left for the caller to
             # reconstruct from group_name) so the model can't typo or
@@ -394,9 +426,11 @@ def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, di
             "score_column": score_column,
             "n_items": len(cols),
             "columns": cols,
-            "cronbachs_alpha": _cronbachs_alpha(item_scores),
+            "cronbachs_alpha": _cronbachs_alpha(complete),
             "mean": float(subscale_score.mean()),
             "std": float(subscale_score.std()),
+            "n_respondents": len(item_scores),
+            "n_incomplete_respondents": len(item_scores) - len(complete),
             "item_total_correlations": item_total_correlations,
             # Named directly instead of leaving the caller to notice a low
             # alpha and go hunting for the cause - see docstring above.

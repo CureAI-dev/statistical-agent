@@ -25,10 +25,12 @@ unexpected exception with backoff before giving up and returning an
 """
 
 import functools
+import sqlite3
 import tempfile
 import time
 from pathlib import Path
 
+from e2b_code_interpreter import NotEnoughSpaceException, RateLimitException, TimeoutException
 from langchain_core.tools import tool
 
 import long_term_memory
@@ -58,6 +60,23 @@ MAX_OUTPUT_CHARS = 2000
 # retrying.
 MAX_TOOL_RETRIES = 3
 RETRY_BACKOFF_BASE_SECONDS = 1
+
+# Only these are plausibly transient - worth spending backoff time on a
+# retry that might succeed the second time. Everything else (a KeyError/
+# TypeError from an actual bug in this file or tools.py, or an e2b error
+# like InvalidArgumentException/AuthenticationException that reflects a bad
+# call, not a flaky one) will fail identically on every attempt - retrying
+# those just burns ~3s of backoff before returning the same failure, and
+# makes a real bug look identical in the trace to a genuinely flaky
+# external call, which is exactly what NFR-6 shouldn't be masking.
+_RETRYABLE_EXCEPTIONS = (
+    TimeoutException,  # e2b sandbox/request timeout
+    RateLimitException,  # e2b API rate limit
+    NotEnoughSpaceException,  # e2b sandbox disk pressure
+    ConnectionError,
+    TimeoutError,
+    sqlite3.OperationalError,  # e.g. "database is locked" (long_term_memory)
+)
 
 
 def _get_sandbox() -> Runtime:
@@ -103,17 +122,26 @@ def _timed(func):
 
 
 def _with_retry(func):
-    """Retry an unexpected exception with exponential backoff
-    (MAX_TOOL_RETRIES attempts, RETRY_BACKOFF_BASE_SECONDS * 2**attempt
-    between them) before giving up. Applied under @_timed (so a retried
-    call's full latency, backoff included, still lands in TOOL_CALLS) and
-    over the raw function (so @tool still sees the original name/
-    docstring/signature via functools.wraps). Returns an {"error": ...}
-    dict on final failure instead of letting the exception reach the
-    agent loop - one flaky tool call must not crash the whole run
-    (NFR-6); the agent sees the same error-dict shape it already knows
-    how to react to (report the failure, keep going) for every other
-    expected failure mode in this file."""
+    """Retry a transient-looking exception (_RETRYABLE_EXCEPTIONS) with
+    exponential backoff (MAX_TOOL_RETRIES attempts, RETRY_BACKOFF_BASE_SECONDS
+    * 2**attempt between them) before giving up. Applied under @_timed (so a
+    retried call's full latency, backoff included, still lands in
+    TOOL_CALLS) and over the raw function (so @tool still sees the original
+    name/docstring/signature via functools.wraps).
+
+    Any other exception is NOT retried (no point burning backoff time on a
+    failure that will repeat identically), but is still caught here and
+    turned into the same {"error": ...} dict shape, on the first attempt -
+    this project's agent graphs register no ToolErrorMiddleware, and
+    ToolNode's own default error handling only covers argument-binding/
+    validation errors, not exceptions raised during a tool's actual
+    execution (confirmed by reading langgraph/prebuilt/tool_node.py and
+    langchain/agents/middleware/tool_error.py) - so letting a non-retryable
+    exception propagate from here would crash the whole run, not just this
+    tool call, which is the exact silent-crash NFR-6 rules out. The message
+    is worded differently from the retried case ("not retried" vs. "failed
+    after N attempts") so a real bug doesn't read identically to a flaky
+    external call in the trace."""
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -121,10 +149,12 @@ def _with_retry(func):
         for attempt in range(MAX_TOOL_RETRIES):
             try:
                 return func(*args, **kwargs)
-            except Exception as exc:
+            except _RETRYABLE_EXCEPTIONS as exc:
                 last_error = exc
                 if attempt < MAX_TOOL_RETRIES - 1:
                     time.sleep(RETRY_BACKOFF_BASE_SECONDS * (2**attempt))
+            except Exception as exc:  # noqa: BLE001 - deliberate: see docstring above.
+                return {"error": f"{func.__name__} failed (not retried - non-transient): {exc!r}"}
         return {"error": f"{func.__name__} failed after {MAX_TOOL_RETRIES} attempts: {last_error}"}
 
     return wrapper

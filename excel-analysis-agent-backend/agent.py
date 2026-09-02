@@ -31,16 +31,15 @@ questions about it by calling tools, instead of us hardcoding the steps.
 from functools import partial
 from pathlib import Path
 
-from dotenv import load_dotenv
 from deepagents import HarnessProfile, create_deep_agent, register_harness_profile
 from deepagents.backends import StateBackend
 from deepagents.middleware import SummarizationMiddleware
+from dotenv import load_dotenv
 from langchain_core.messages.utils import count_tokens_approximately
 from langchain_openai import ChatOpenAI
+from langgraph.errors import GraphRecursionError
 
 import long_term_memory
-from report import write_outputs
-
 from agent_tools import (
     classify_columns_tool,
     close_sandbox,
@@ -56,9 +55,27 @@ from agent_tools import (
     submit_plan_tool,
 )
 from prompts import GATE_SYSTEM_PROMPT, SYSTEM_PROMPT
+from report import write_outputs
 from store import HANDLES, SANDBOX_PATHS, SCHEMA_SIGS, TOOL_CALLS
 
 load_dotenv()
+
+# FR-7.3 / NFR-6: an explicit ceiling well below langgraph's own default
+# (DEFAULT_RECURSION_LIMIT = 10007, confirmed by reading
+# langgraph/_internal/_config.py - effectively unbounded for this project's
+# runs). Without this, nothing stops a stuck-in-a-loop run short of the
+# model eventually giving up on its own - docs/progress.md documents a real
+# 297-call infer_scale_tool retry loop and a separate 90-call one, neither
+# of which the library's own default ever caught. And even if that default
+# were ever reached, nothing here handled GraphRecursionError, so the run
+# would crash instead of "halt, summarize progress, return partial results"
+# as FR-7.3 requires - confirmed by reading langgraph/errors.py, this is a
+# real RecursionError subclass, not something LangGraph swallows on its
+# own. Set generously above the largest legitimate run observed so far (101
+# LLM turns / 108 tool calls, docs/progress.md's FR-2.3 re-verification) so
+# a real, working run is never cut short by this.
+MAX_GATE_STEPS = 30
+MAX_PHASE2_STEPS = 200
 
 _FALLBACK_QUESTION = (
     "Your request needs more detail before this file can be analyzed - "
@@ -261,42 +278,52 @@ def _run_gate_phase(file_path: str, question: str, assume_and_state: bool) -> di
     total_tokens = {"input": 0, "output": 0, "total": 0}
     step_count = 0
     n_seen = 0
-    for step in gate_graph.stream(
-        {"messages": [{"role": "user", "content": gate_message}]},
-        stream_mode="values",
-    ):
-        # Same "only print/account for messages new since the last step"
-        # logic as phase 2's loop below - "values" mode re-yields the full
-        # accumulated message list every step.
-        messages = step["messages"]
-        new_messages = messages[n_seen:]
-        n_seen = len(messages)
+    try:
+        for step in gate_graph.stream(
+            {"messages": [{"role": "user", "content": gate_message}]},
+            stream_mode="values",
+            config={"recursion_limit": MAX_GATE_STEPS},
+        ):
+            # Same "only print/account for messages new since the last step"
+            # logic as phase 2's loop below - "values" mode re-yields the full
+            # accumulated message list every step.
+            messages = step["messages"]
+            new_messages = messages[n_seen:]
+            n_seen = len(messages)
 
-        for message in new_messages:
-            message.pretty_print()
-            trace_lines.append(message.pretty_repr())
+            for message in new_messages:
+                message.pretty_print()
+                trace_lines.append(message.pretty_repr())
 
-            usage = getattr(message, "usage_metadata", None)
-            if message.type == "ai" and usage:
-                step_count += 1
-                total_tokens["input"] += usage.get("input_tokens", 0)
-                total_tokens["output"] += usage.get("output_tokens", 0)
-                total_tokens["total"] += usage.get("total_tokens", 0)
-                tokens_line = (
-                    f"[tokens this call: {usage.get('input_tokens', 0)} in / "
-                    f"{usage.get('output_tokens', 0)} out -- "
-                    f"running total: {total_tokens['total']}]"
-                )
-                print(tokens_line)
-                trace_lines.append(tokens_line)
+                usage = getattr(message, "usage_metadata", None)
+                if message.type == "ai" and usage:
+                    step_count += 1
+                    total_tokens["input"] += usage.get("input_tokens", 0)
+                    total_tokens["output"] += usage.get("output_tokens", 0)
+                    total_tokens["total"] += usage.get("total_tokens", 0)
+                    tokens_line = (
+                        f"[tokens this call: {usage.get('input_tokens', 0)} in / "
+                        f"{usage.get('output_tokens', 0)} out -- "
+                        f"running total: {total_tokens['total']}]"
+                    )
+                    print(tokens_line)
+                    trace_lines.append(tokens_line)
 
-            if message.type == "ai" and message.tool_calls:
-                for call in message.tool_calls:
-                    if call["name"] == "submit_plan_tool":
-                        decision = call["args"]
+                if message.type == "ai" and message.tool_calls:
+                    for call in message.tool_calls:
+                        if call["name"] == "submit_plan_tool":
+                            decision = call["args"]
 
-        if decision is not None:
-            break
+            if decision is not None:
+                break
+    except GraphRecursionError:
+        # decision stays None - _validate_plan_decision below already
+        # defaults None to a clarifying question (fail toward asking, not
+        # crashing or guessing), the same handling as a missing/malformed
+        # submit_plan_tool call.
+        note = f"[gate phase hit its {MAX_GATE_STEPS}-step limit without deciding]"
+        print(note)
+        trace_lines.append(note)
 
     return {
         "decision": _validate_plan_decision(decision, handle_id),
@@ -317,7 +344,11 @@ def run(file_path: str, question: str, assume_and_state: bool = False) -> dict:
     reached an answer still leaves a record. Also tracks step count and
     per-tool latency (NFR-5) alongside the existing token counting, across
     BOTH the gate phase and phase 2, not just phase 2.
-    Returns a dict: {'status': 'needs_clarification', 'question': str} or {'status': 'done', 'answer': str}.
+    Returns a dict: {'status': 'needs_clarification', 'question': str},
+    {'status': 'done', 'answer': str}, or - only if phase 2 hits
+    MAX_PHASE2_STEPS without producing a final answer (FR-7.3's guardrail) -
+    {'status': 'step_limit_exceeded', 'answer': str} carrying an explanatory
+    message rather than a real finding.
     """
     handle_id = Path(file_path).stem
 
@@ -454,77 +485,102 @@ def run(file_path: str, question: str, assume_and_state: bool = False) -> dict:
 
         last_summarization_event = None
         n_seen = 0
+        step_limit_hit = False
 
-        # Passed inline (not pulled into a variable first) so the type
-        # checker matches this dict literal against the exact shape
-        # create_deep_agent expects, instead of just inferring "some dict".
-        for step in run_graph.stream(
-            {"messages": [{"role": "user", "content": user_message}]},
-            stream_mode="values",
-        ):
-            # "values" mode yields the full accumulated message list after
-            # each graph step, not one message at a time. When the model
-            # makes several tool calls in one turn, langgraph runs them all
-            # in a single step and appends a ToolMessage per call - so
-            # printing only messages[-1] silently drops every result but
-            # the last one. Print/account for every message new since the
-            # last step instead.
-            messages = step["messages"]
-            new_messages = messages[n_seen:]
-            n_seen = len(messages)
+        try:
+            # Passed inline (not pulled into a variable first) so the type
+            # checker matches this dict literal against the exact shape
+            # create_deep_agent expects, instead of just inferring "some dict".
+            for step in run_graph.stream(
+                {"messages": [{"role": "user", "content": user_message}]},
+                stream_mode="values",
+                config={"recursion_limit": MAX_PHASE2_STEPS},
+            ):
+                # "values" mode yields the full accumulated message list after
+                # each graph step, not one message at a time. When the model
+                # makes several tool calls in one turn, langgraph runs them all
+                # in a single step and appends a ToolMessage per call - so
+                # printing only messages[-1] silently drops every result but
+                # the last one. Print/account for every message new since the
+                # last step instead.
+                messages = step["messages"]
+                new_messages = messages[n_seen:]
+                n_seen = len(messages)
 
-            # A real compaction event, not a text-pattern guess (past
-            # attempts to detect this by grepping the trace for words like
-            # "summary" produced false positives - see docs/progress.md
-            # section 7). This version of deepagents' summarization
-            # middleware works through wrap_model_call, not the older
-            # before_model hook - it never inserts a summary message into
-            # state["messages"] (confirmed by reading
-            # deepagents/middleware/summarization.py - only the *request*
-            # sent to the model is modified). The one place it does persist
-            # something to graph state is the private "_summarization_event"
-            # field (cutoff_index/summary_message/file_path) - compare it to
-            # the last one seen to count only genuinely new events, since it
-            # stays present in state across every later step once set.
-            current_event = step.get("_summarization_event")
-            if current_event is not None and current_event != last_summarization_event:
-                last_summarization_event = current_event
-                summarization_events += 1
-                event_line = (
-                    f"[summarization fired - event #{summarization_events}, "
-                    f"cutoff_index={current_event.get('cutoff_index')}, "
-                    f"file_path={current_event.get('file_path')}]"
-                )
-                print(event_line)
-                trace_lines.append(event_line)
-
-            for message in new_messages:
-                message.pretty_print()
-                trace_lines.append(message.pretty_repr())
-
-                # Every AI message carries usage_metadata for that one LLM
-                # call (ChatOpenAI sets this); summing it across the trace
-                # gives the real token spend for the whole agent run, tool
-                # calls included.
-                usage = getattr(message, "usage_metadata", None)
-                if message.type == "ai" and usage:
-                    step_count += 1
-                    total_tokens["input"] += usage.get("input_tokens", 0)
-                    total_tokens["output"] += usage.get("output_tokens", 0)
-                    total_tokens["total"] += usage.get("total_tokens", 0)
-                    tokens_line = (
-                        f"[tokens this call: {usage.get('input_tokens', 0)} in / "
-                        f"{usage.get('output_tokens', 0)} out -- "
-                        f"running total: {total_tokens['total']}]"
+                # A real compaction event, not a text-pattern guess (past
+                # attempts to detect this by grepping the trace for words like
+                # "summary" produced false positives - see docs/progress.md
+                # section 7). This version of deepagents' summarization
+                # middleware works through wrap_model_call, not the older
+                # before_model hook - it never inserts a summary message into
+                # state["messages"] (confirmed by reading
+                # deepagents/middleware/summarization.py - only the *request*
+                # sent to the model is modified). The one place it does persist
+                # something to graph state is the private "_summarization_event"
+                # field (cutoff_index/summary_message/file_path) - compare it to
+                # the last one seen to count only genuinely new events, since it
+                # stays present in state across every later step once set.
+                current_event = step.get("_summarization_event")
+                if current_event is not None and current_event != last_summarization_event:
+                    last_summarization_event = current_event
+                    summarization_events += 1
+                    event_line = (
+                        f"[summarization fired - event #{summarization_events}, "
+                        f"cutoff_index={current_event.get('cutoff_index')}, "
+                        f"file_path={current_event.get('file_path')}]"
                     )
-                    print(tokens_line)
-                    trace_lines.append(tokens_line)
+                    print(event_line)
+                    trace_lines.append(event_line)
 
-                is_final_answer = message.type == "ai" and not message.tool_calls
-                if is_final_answer:
-                    final_answer = message.content
+                for message in new_messages:
+                    message.pretty_print()
+                    trace_lines.append(message.pretty_repr())
+
+                    # Every AI message carries usage_metadata for that one LLM
+                    # call (ChatOpenAI sets this); summing it across the trace
+                    # gives the real token spend for the whole agent run, tool
+                    # calls included.
+                    usage = getattr(message, "usage_metadata", None)
+                    if message.type == "ai" and usage:
+                        step_count += 1
+                        total_tokens["input"] += usage.get("input_tokens", 0)
+                        total_tokens["output"] += usage.get("output_tokens", 0)
+                        total_tokens["total"] += usage.get("total_tokens", 0)
+                        tokens_line = (
+                            f"[tokens this call: {usage.get('input_tokens', 0)} in / "
+                            f"{usage.get('output_tokens', 0)} out -- "
+                            f"running total: {total_tokens['total']}]"
+                        )
+                        print(tokens_line)
+                        trace_lines.append(tokens_line)
+
+                    is_final_answer = message.type == "ai" and not message.tool_calls
+                    if is_final_answer:
+                        final_answer = message.content
+        except GraphRecursionError:
+            # FR-7.3: stop gracefully with partial results instead of
+            # crashing run() - see MAX_PHASE2_STEPS's comment above for why
+            # this exists. final_answer is deliberately overwritten (not
+            # left as whatever partial text was accumulated, since a
+            # not-final message was never meant to stand alone as the
+            # answer) - trace_lines/results.json still carry everything
+            # attempted before the cutoff for a human to inspect.
+            step_limit_hit = True
+            note = f"[phase 2 hit its {MAX_PHASE2_STEPS}-step limit before reaching a final answer]"
+            print(note)
+            trace_lines.append(note)
     finally:
         close_sandbox()
+
+    if step_limit_hit:
+        final_answer = (
+            f"[step_limit_exceeded] Stopped after {MAX_PHASE2_STEPS} reasoning steps "
+            "without reaching a final answer - almost certainly a retry loop rather "
+            "than a genuinely long analysis (docs/progress.md documents real cases "
+            "up to 297 repeated tool calls that the model never broke out of on its "
+            "own). Nothing here was confirmed by a completed analysis; see trace.log "
+            "for exactly what was attempted before the cutoff."
+        )
 
     print(
         f"\n=== Token usage ===\n"
@@ -567,7 +623,13 @@ def run(file_path: str, question: str, assume_and_state: bool = False) -> dict:
     # SCHEMA_SIGS here - reaching this line requires the gate phase's
     # "ready" + handle_id-in-HANDLES check to have passed above, and
     # read_excel_tool sets both HANDLES and SCHEMA_SIGS together.
-    if final_answer:
+    # Skip persisting a conclusion when the run never actually reached one -
+    # a "stopped due to step limit" note is not a validated finding, and
+    # recall_memory_tool's whole point is surfacing only validated judgment
+    # calls to a later run (see its own docstring).
+    if final_answer and not step_limit_hit:
         long_term_memory.remember_conclusion(SCHEMA_SIGS[handle_id], question, final_answer[:2000])
 
+    if step_limit_hit:
+        return {"status": "step_limit_exceeded", "answer": final_answer}
     return {"status": "done", "answer": final_answer}
