@@ -302,6 +302,14 @@ def classify_columns_tool(handle_id: str, overrides: dict[str, str] | None = Non
     columns. Every call commits the result as this file's classification -
     later steps (grouping items into subscales, scoring) read from it.
 
+    The result also includes low_variance_columns: every column where all
+    non-null values are identical (n_unique <= 1) - a deterministic signal
+    computed from the data, not a judgment call, same idea as
+    score_items_tool's likely_reverse_coded_items. A column with no
+    variance can't serve as a usable outcome or predictor for any
+    statistical test - see SYSTEM_PROMPT for what to do if the task asks
+    you to use one of these columns anyway.
+
     Args:
         handle_id: the id returned by read_excel_tool.
         overrides: optional {column_name: type} to replace suggested
@@ -327,6 +335,15 @@ def classify_columns_tool(handle_id: str, overrides: dict[str, str] | None = Non
         result = suggestions
 
     CLASSIFICATIONS[handle_id] = result
+
+    # Computed from the already-committed `result`, not folded into it -
+    # CLASSIFICATIONS must stay a flat {column: info} dict (group_items_tool
+    # iterates it expecting every value to be a column's info), so this
+    # extra field is added only to what goes back to the model, not to what
+    # gets stored.
+    low_variance_columns = [col for col, info in result.items() if info.get("n_unique", 2) <= 1]
+    if low_variance_columns:
+        return {**result, "low_variance_columns": low_variance_columns}
     return result
 
 
