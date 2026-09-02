@@ -5,7 +5,7 @@ afterward, and no individual number in the report could be traced back to
 the real computation that produced it without re-reading scrollback."""
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from store import CLASSIFICATIONS, GROUPS, SCALES, json_safe
@@ -36,7 +36,10 @@ def write_outputs(
     in report.md can be checked against a real computation instead of
     just the prose text (FR-8.2/FR-8.3).
     """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # UTC, not local time - just a sortable folder name, but local time
+    # would silently shift (and could even collide) across a daylight-saving
+    # change or a machine in a different timezone.
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     run_dir = OUTPUTS_DIR / handle_id / timestamp
     run_dir.mkdir(parents=True, exist_ok=True)
 
