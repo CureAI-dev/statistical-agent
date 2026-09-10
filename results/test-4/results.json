@@ -175,8 +175,8 @@
         "Uncertain": 47,
         "Strongly agree": 39
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "I think my doctor's office has everything needed to provide complete medical care": {
       "dtype": "str",
@@ -189,8 +189,8 @@
         "Uncertain": 57,
         "Strongly disagree": 47
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "The medical care I have been receiving is just about perfect": {
       "dtype": "str",
@@ -203,8 +203,8 @@
         "Disagree": 54,
         "Strongly agree": 47
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "Sometimes doctors make me wonder if their diagnosis is correct": {
       "dtype": "str",
@@ -217,8 +217,8 @@
         "Uncertain": 43,
         "Strongly disagree": 21
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "I feel confident that I can get the medical care I need without being set back financially": {
       "dtype": "str",
@@ -231,8 +231,8 @@
         "Disagree": 59,
         "Strongly disagree": 36
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "When I go for medical care, they are careful to check everything when treating and examining me": {
       "dtype": "str",
@@ -245,8 +245,8 @@
         "Agree": 55,
         "Disagree": 44
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "I have to pay for more of my medical care than I can afford": {
       "dtype": "str",
@@ -259,8 +259,8 @@
         "Strongly agree": 45,
         "Uncertain": 42
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "I have easy access to the medical specialists I need": {
       "dtype": "str",
@@ -273,8 +273,8 @@
         "Disagree": 46,
         "Strongly disagree": 39
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "Where I get medical care, people have to wait too long for emergency treatment": {
       "dtype": "str",
@@ -287,8 +287,8 @@
         "Disagree": 53,
         "Strongly agree": 52
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "Doctors act too businesslike and impersonal toward me": {
       "dtype": "str",
@@ -301,8 +301,8 @@
         "Strongly disagree": 55,
         "Uncertain": 52
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "My doctors treat me in a very friendly and courteous manner": {
       "dtype": "str",
@@ -315,8 +315,8 @@
         "Uncertain": 48,
         "Strongly disagree": 44
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "Those who provide my medical care sometimes hurry too much when they treat me": {
       "dtype": "str",
@@ -329,8 +329,8 @@
         "Agree": 48,
         "Strongly agree": 24
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "Doctors sometimes ignore what I tell them": {
       "dtype": "str",
@@ -343,8 +343,8 @@
         "Uncertain": 49,
         "Strongly agree": 43
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "I have some doubts about the ability of the doctors who treat me": {
       "dtype": "str",
@@ -357,8 +357,8 @@
         "Agree": 42,
         "Strongly agree": 42
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "Doctors usually spend plenty of time with me": {
       "dtype": "str",
@@ -371,8 +371,8 @@
         "Strongly agree": 54,
         "Disagree": 50
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "I find it hard to get an appointment for medical care right away": {
       "dtype": "str",
@@ -385,8 +385,8 @@
         "Agree": 56,
         "Strongly agree": 42
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "I am dissatisfied with some things about the medical care I receive": {
       "dtype": "str",
@@ -399,8 +399,8 @@
         "Uncertain": 57,
         "Disagree": 50
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "I am able to get medical care whenever I need it": {
       "dtype": "str",
@@ -413,8 +413,8 @@
         "Disagree": 51,
         "Uncertain": 45
       },
-      "suggested_type": "likert",
-      "confidence": "overridden"
+      "suggested_type": "categorical",
+      "confidence": "medium"
     },
     "In the last month, how often have you been upset because of something that happened unexpectedly?": {
       "dtype": "str",
@@ -793,265 +793,621 @@
     "Doctors are good about explaining the reason for medical tests": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 1,
-        "disagree": 2,
-        "uncertain": 3,
-        "agree": 4,
-        "strongly agree": 5
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": false,
+      "reverse_coded": true,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "I think my doctor's office has everything needed to provide complete medical care": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 1,
-        "disagree": 2,
-        "uncertain": 3,
-        "agree": 4,
-        "strongly agree": 5
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": false,
+      "reverse_coded": true,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "The medical care I have been receiving is just about perfect": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 1,
-        "disagree": 2,
-        "uncertain": 3,
-        "agree": 4,
-        "strongly agree": 5
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": false,
+      "reverse_coded": true,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "Sometimes doctors make me wonder if their diagnosis is correct": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 5,
-        "disagree": 4,
-        "uncertain": 3,
-        "agree": 2,
-        "strongly agree": 1
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": true,
+      "reverse_coded": false,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "I feel confident that I can get the medical care I need without being set back financially": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 1,
-        "disagree": 2,
-        "uncertain": 3,
-        "agree": 4,
-        "strongly agree": 5
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": false,
+      "reverse_coded": true,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "When I go for medical care, they are careful to check everything when treating and examining me": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 1,
-        "disagree": 2,
-        "uncertain": 3,
-        "agree": 4,
-        "strongly agree": 5
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": false,
+      "reverse_coded": true,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "I have to pay for more of my medical care than I can afford": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 5,
-        "disagree": 4,
-        "uncertain": 3,
-        "agree": 2,
-        "strongly agree": 1
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": true,
+      "reverse_coded": false,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "I have easy access to the medical specialists I need": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 1,
-        "disagree": 2,
-        "uncertain": 3,
-        "agree": 4,
-        "strongly agree": 5
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": false,
+      "reverse_coded": true,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "Where I get medical care, people have to wait too long for emergency treatment": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 5,
-        "disagree": 4,
-        "uncertain": 3,
-        "agree": 2,
-        "strongly agree": 1
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": true,
+      "reverse_coded": false,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "Doctors act too businesslike and impersonal toward me": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 5,
-        "disagree": 4,
-        "uncertain": 3,
-        "agree": 2,
-        "strongly agree": 1
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": true,
+      "reverse_coded": false,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "My doctors treat me in a very friendly and courteous manner": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 1,
-        "disagree": 2,
-        "uncertain": 3,
-        "agree": 4,
-        "strongly agree": 5
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": false,
+      "reverse_coded": true,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "Those who provide my medical care sometimes hurry too much when they treat me": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 5,
-        "disagree": 4,
-        "uncertain": 3,
-        "agree": 2,
-        "strongly agree": 1
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": true,
+      "reverse_coded": false,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "Doctors sometimes ignore what I tell them": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 5,
-        "disagree": 4,
-        "uncertain": 3,
-        "agree": 2,
-        "strongly agree": 1
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": true,
+      "reverse_coded": false,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "I have some doubts about the ability of the doctors who treat me": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 5,
-        "disagree": 4,
-        "uncertain": 3,
-        "agree": 2,
-        "strongly agree": 1
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": true,
+      "reverse_coded": false,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "Doctors usually spend plenty of time with me": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 1,
-        "disagree": 2,
-        "uncertain": 3,
-        "agree": 4,
-        "strongly agree": 5
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": false,
+      "reverse_coded": true,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "I find it hard to get an appointment for medical care right away": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 5,
-        "disagree": 4,
-        "uncertain": 3,
-        "agree": 2,
-        "strongly agree": 1
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": true,
+      "reverse_coded": false,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "I am dissatisfied with some things about the medical care I receive": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 5,
-        "disagree": 4,
-        "uncertain": 3,
-        "agree": 2,
-        "strongly agree": 1
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
       },
-      "reverse_coded": true,
+      "reverse_coded": false,
       "confidence": "overridden",
       "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
     },
     "I am able to get medical care whenever I need it": {
       "n_points": 5,
       "label_to_score": {
-        "strongly disagree": 1,
-        "disagree": 2,
-        "uncertain": 3,
-        "agree": 4,
-        "strongly agree": 5
+        "Strongly agree": 1,
+        "Agree": 2,
+        "Uncertain": 3,
+        "Disagree": 4,
+        "Strongly disagree": 5
+      },
+      "reverse_coded": true,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
+    },
+    "In the last month, how often have you been upset because of something that happened unexpectedly?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
       },
       "reverse_coded": false,
       "confidence": "overridden",
-      "note": "Unrecognized wording ['agree', 'disagree', 'strongly agree', 'strongly disagree', 'uncertain']; decide the label order yourself after reading the item."
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "In the last month, how often have you felt that you were unable to control the important things in your life?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "In the last month, how often have you felt nervous and stressed?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "In the last month, how often have you felt confident about your ability to handle your personal problems?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
+      },
+      "reverse_coded": true,
+      "confidence": "overridden",
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "In the last month, how often have you felt that things were going your way?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
+      },
+      "reverse_coded": true,
+      "confidence": "overridden",
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "In the last month, how often have you found that you could not cope with all the things that you had to do?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "In the last month, how often have you been able to control irritations in your life?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
+      },
+      "reverse_coded": true,
+      "confidence": "overridden",
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "In the last month, how often have you felt that you were on top of things?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
+      },
+      "reverse_coded": true,
+      "confidence": "overridden",
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "In the last month, how often have you been angered because of things that happened that were outside of your control?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "In the last month, how often have you felt difficulties were piling up so high that you could not overcome them?": {
+      "n_points": 5,
+      "label_to_score": {
+        "Never": 0,
+        "Almost never": 1,
+        "Sometimes": 2,
+        "Fairly often": 3,
+        "Very often": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Matched a known Likert wording; label order treated as low-to-high."
+    },
+    "During the past month, how often have you had trouble sleeping because you cannot get to sleep within 30 minutes?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble sleeping because you wake up in the middle of the night or early morning?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble sleeping because you have to get up to use the bathroom?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble sleeping because you cannot breathe comfortably?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble sleeping because you cough or snore loudly?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble sleeping because you feel too cold?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble sleeping because you feel too hot?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble sleeping because you had bad dreams?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble sleeping because you have pain?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble sleeping for other reason(s)?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how would you rate your sleep quality overall?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Very good": 0,
+        "Fairly good": 1,
+        "Fairly bad": 2,
+        "Very bad": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['fairly bad', 'fairly good', 'very bad', 'very good']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you taken medicine to help you sleep (prescribed or 'over the counter')?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how often have you had trouble staying awake while driving, eating meals, or engaging in social activity?": {
+      "n_points": 4,
+      "label_to_score": {
+        "Not during the past month": 0,
+        "Less than once a week": 1,
+        "Once or twice a week": 2,
+        "Three or more times a week": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['less than once a week', 'not during the past month', 'once or twice a week', 'three or more times a week']; decide the label order yourself after reading the item."
+    },
+    "During the past month, how much of a problem has it been for you to keep up enough enthusiasm to get things done?": {
+      "n_points": 4,
+      "label_to_score": {
+        "No problem at all": 0,
+        "Only a very slight problem": 1,
+        "Somewhat of a problem": 2,
+        "A very big problem": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Unrecognized wording ['a very big problem', 'no problem at all', 'only a very slight problem', 'somewhat of a problem']; decide the label order yourself after reading the item."
     }
   },
-  "groups": null,
-  "token_usage": {
-    "input": 746756,
-    "output": 8323,
-    "total": 755079
+  "groups": {
+    "Patient_satisfaction": {
+      "columns": [
+        "Doctors are good about explaining the reason for medical tests",
+        "I think my doctor's office has everything needed to provide complete medical care",
+        "The medical care I have been receiving is just about perfect",
+        "Sometimes doctors make me wonder if their diagnosis is correct",
+        "I feel confident that I can get the medical care I need without being set back financially",
+        "When I go for medical care, they are careful to check everything when treating and examining me",
+        "I have to pay for more of my medical care than I can afford",
+        "I have easy access to the medical specialists I need",
+        "Where I get medical care, people have to wait too long for emergency treatment",
+        "Doctors act too businesslike and impersonal toward me",
+        "My doctors treat me in a very friendly and courteous manner",
+        "Those who provide my medical care sometimes hurry too much when they treat me",
+        "Doctors sometimes ignore what I tell them",
+        "I have some doubts about the ability of the doctors who treat me",
+        "Doctors usually spend plenty of time with me",
+        "I find it hard to get an appointment for medical care right away",
+        "I am dissatisfied with some things about the medical care I receive",
+        "I am able to get medical care whenever I need it"
+      ],
+      "rationale": null
+    },
+    "PSS10": {
+      "columns": [
+        "In the last month, how often have you been upset because of something that happened unexpectedly?",
+        "In the last month, how often have you felt that you were unable to control the important things in your life?",
+        "In the last month, how often have you felt nervous and stressed?",
+        "In the last month, how often have you felt confident about your ability to handle your personal problems?",
+        "In the last month, how often have you felt that things were going your way?",
+        "In the last month, how often have you found that you could not cope with all the things that you had to do?",
+        "In the last month, how often have you been able to control irritations in your life?",
+        "In the last month, how often have you felt that you were on top of things?",
+        "In the last month, how often have you been angered because of things that happened that were outside of your control?",
+        "In the last month, how often have you felt difficulties were piling up so high that you could not overcome them?"
+      ],
+      "rationale": null
+    },
+    "PSQI": {
+      "columns": [
+        "During the past month, how often have you had trouble sleeping because you cannot get to sleep within 30 minutes?",
+        "During the past month, how often have you had trouble sleeping because you wake up in the middle of the night or early morning?",
+        "During the past month, how often have you had trouble sleeping because you have to get up to use the bathroom?",
+        "During the past month, how often have you had trouble sleeping because you cannot breathe comfortably?",
+        "During the past month, how often have you had trouble sleeping because you cough or snore loudly?",
+        "During the past month, how often have you had trouble sleeping because you feel too cold?",
+        "During the past month, how often have you had trouble sleeping because you feel too hot?",
+        "During the past month, how often have you had trouble sleeping because you had bad dreams?",
+        "During the past month, how often have you had trouble sleeping because you have pain?",
+        "During the past month, how often have you had trouble sleeping for other reason(s)?",
+        "During the past month, how would you rate your sleep quality overall?",
+        "During the past month, how often have you taken medicine to help you sleep (prescribed or 'over the counter')?",
+        "During the past month, how often have you had trouble staying awake while driving, eating meals, or engaging in social activity?",
+        "During the past month, how much of a problem has it been for you to keep up enough enthusiasm to get things done?"
+      ],
+      "rationale": null
+    }
   },
-  "step_count": 29,
+  "token_usage": {
+    "input": 589058,
+    "output": 26121,
+    "total": 615179
+  },
+  "step_count": 22,
   "tool_calls": [
     {
       "tool": "read_excel_tool",
-      "seconds": 0.016
+      "seconds": 0.013
     },
     {
       "tool": "profile_tool",
-      "seconds": 0.009
+      "seconds": 0.008
     },
     {
       "tool": "profile_tool",
-      "seconds": 0.006
+      "seconds": 0.007
     },
     {
       "tool": "recall_memory_tool",
-      "seconds": 0.006
+      "seconds": 0.012
     },
     {
       "tool": "classify_columns_tool",
-      "seconds": 0.02
+      "seconds": 0.038
     },
     {
       "tool": "study_plan_tool",
@@ -1066,80 +1422,52 @@
       "seconds": 0.0
     },
     {
-      "tool": "classify_columns_tool",
-      "seconds": 0.022
+      "tool": "infer_scales_tool",
+      "seconds": 0.035
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.004
+      "tool": "group_items_tool",
+      "seconds": 0.012
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.001
-    },
-    {
-      "tool": "infer_scale_tool",
-      "seconds": 0.001
-    },
-    {
-      "tool": "infer_scale_tool",
+      "tool": "group_items_tool",
       "seconds": 0.003
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
+      "tool": "score_items_tool",
+      "seconds": 0.056
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
+      "tool": "run_code_tool",
+      "seconds": 3.0
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
+      "tool": "run_code_tool",
+      "seconds": 0.009
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
+      "tool": "run_code_tool",
+      "seconds": 0.007
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
+      "tool": "recommend_test_tool",
+      "seconds": 0.0
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
+      "tool": "run_code_tool",
+      "seconds": 10.712
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.001
+      "tool": "run_code_tool",
+      "seconds": 0.021
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
+      "tool": "study_plan_tool",
+      "seconds": 0.0
     },
     {
-      "tool": "infer_scale_tool",
-      "seconds": 0.002
-    },
-    {
-      "tool": "infer_scale_tool",
-      "seconds": 0.002
-    },
-    {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
-    },
-    {
-      "tool": "infer_scale_tool",
-      "seconds": 0.002
-    },
-    {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
-    },
-    {
-      "tool": "infer_scale_tool",
-      "seconds": 0.003
+      "tool": "study_plan_tool",
+      "seconds": 0.0
     }
   ],
   "summarization_events": 0

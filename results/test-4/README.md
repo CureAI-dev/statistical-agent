@@ -1,134 +1,125 @@
-# Test 4 — study-plan JSON wired in; run stopped by the token cap
+# Test 4 — study plan + batched scale commit: first completed run on a raw survey export
 
 **Date:** 2026-09-11 · **Files:** telemedicine CSV (292 x 58) + its study-plan JSON
-**Run:** 29 LLM turns, 27 tool calls, **755,079 tokens**, 0 summarization events
+**Run:** 22 LLM turns, 20 tool calls, **615,179 tokens** (82% of the 750,000 cap),
+0 summarization events, exit 0
 **Model:** `gpt-5-mini` via OpenAI (`LLM_SOURCE=openai`), seed=42, reasoning_effort=medium
-**Outcome:** `token_budget_exceeded` — stopped at the 750,000 ceiling before
-reaching a final answer. **No analysis was completed.**
+**Outcome:** completed. Every reported statistic independently reproduced from the raw
+CSV **to 10 decimal places**.
 
-## Verdict
+`README_attempt1_capped.md` documents the earlier attempt that the token cap
+stopped; this file supersedes it.
 
-Two things worked and one thing broke.
+## Verified results
 
-**Worked — the study plan.** The agent read the JSON on demand and used it
-as fact rather than inferring. It fetched `overview`, `variables`,
-`analysis`, `column_map`, `reverse_coded` and `items` as separate slices,
-never the whole file. It got all 13 reverse-coded items in one ~60-token
-call, including 9 PSQ-18 items it could not plausibly have guessed — PSQ-18's
-reverse set is not inferable from column names the way PSS-10's was in
-test-3.
+Recomputed from the raw CSV using the plan's own anchors and reverse flags:
 
-**Worked — the cap.** It fired exactly as designed at 755,079 tokens, wrote
-the outputs, and returned an explanation rather than a fabricated answer.
-Nothing was persisted to long-term memory, because a stopped run has no
-validated conclusion to persist. This is the guardrail's first real firing
-and it behaved correctly.
+| subscale | n items | agent | recomputed | |
+|---|---|---|---|---|
+| Patient_satisfaction (PSQ-18) | 18 | 0.883 | 0.883 | MATCH |
+| PSS10 | 10 | 0.869 | 0.869 | MATCH |
+| PSQI | 14 | 0.882 | 0.882 | MATCH |
 
-**Broke — every LLM turn issued exactly one tool call.**
+| Spearman | agent | recomputed | |
+|---|---|---|---|
+| PSS10 ~ Patient_satisfaction | rho = 0.6926553648 | 0.6926553648 | MATCH |
+| Patient_satisfaction ~ PSQI | rho = 0.7319640116 | 0.7319640116 | MATCH |
+| PSS10 ~ PSQI | rho = 0.6547939320 | 0.6547939320 | MATCH |
 
-```
-tool calls per turn: {1: 29}
-```
+All three correlations p < 1e-36. It also disclosed `n_incomplete = 18` for the
+PSQI group, which is correct — that many respondents are missing at least one
+PSQI item, so the reliability figure rests on fewer people than the score does.
 
-Test-3 issued 33 `infer_scale_tool` calls in a *single* parallel turn. Here
-all 19 came one per round trip, each resending ~31,000 tokens of context.
-That is the entire reason the cap was hit.
+**The study's primary hypothesis is supported in this data**: perceived stress,
+sleep quality and patient satisfaction are all strongly associated.
 
-## This was not a loop
+## What made this run possible
 
-Worth stating plainly, because the cap's own message asks the question:
+The previous attempt spent 755,079 tokens, scaled 19 of 42 items, and was
+stopped by the cap before running a single test. The difference is one tool.
 
-- 19 `infer_scale_tool` calls, **19 distinct columns**, zero repeats.
-- `read_excel_tool` appears **once**, in the gate phase.
-- 0 summarization events, so no context was ever evicted.
-
-It was making real progress the whole time. It simply cannot afford to
-make it one item per round trip.
-
-## The arithmetic that kills it
-
-The plan declares **42 Likert items**. At one item per LLM turn and ~31,000
-input tokens resent per turn:
+**`infer_scales_tool`** commits many items in a single call. With a study plan
+loaded, `from_plan=True` takes every anchor, label->score map and reverse flag
+straight from the plan - stated design facts, so nothing is inferred and the
+model does not have to retype them.
 
 ```
-42 turns x ~31,000 = ~1,302,000 tokens for scale inference alone
+n_committed: 42   failed: 0   (~1,963 tokens, ONE call)
+reverse-coded (13): PSQ18_1,2,3,5,6,8,11,15,18 + PSS10_4,5,7,8
 ```
 
-before any grouping, scoring, or a single statistical test. The run got 19
-of 42 items done — about 45% of just that one stage — for 755,079 tokens.
+42 round trips at ~31,000 resent tokens each became one. Note this was never a
+framework limit: nothing sets `parallel_tool_calls`, deepagents does not force
+sequential execution, and test-3 issued 33 calls in a single turn. The model
+simply chose one at a time, and the fix is to stop depending on that choice.
+(deepagents ships a `<use_parallel_tool_calls>` nudge in its *Anthropic*
+harness profiles and none for OpenAI.)
 
-Raising `MAX_RUN_TOKENS` does not fix this. It buys a more expensive
-failure.
+**Bug caught while building it**: the first version failed all 42 items with
+"not a column in this file". The plan names items by code (`PSS10_4`) while
+this export's headers are question sentences. `from_plan` now resolves each
+item to whichever name exists in the dataframe - without which the feature was
+useless on precisely the dataset it was built for.
 
-## The fix is batching, not a bigger ceiling
+## The study plan did its job
 
-Two changes, either of which would have let this run finish:
+Five `study_plan_tool` calls, fetched as slices, never the whole file:
+`overview`, `variables`, `analysis`, `items(PSS10)`, `items(PSQ18)`.
 
-1. **A bulk scale-commit path.** When a study plan is loaded, per-item
-   inference is redundant — the plan already states every item's anchor,
-   options and reverse flag. One call could commit all 42 from
-   `study_plan.items_for(...)` instead of 42 round trips. This is the
-   direct fix and it is specific to having a plan.
+The decisive part is the 13 reverse-coded items **read as fact**, including
+nine PSQ-18 items. PSQ-18's reverse set is not inferable from column names the
+way PSS-10's was in test-3 - and here the columns are not even named after the
+instrument, they are raw question wording. Without the plan this file cannot be
+scored correctly by any amount of inference.
 
-2. **Make `infer_scale_tool` accept a list of columns.** The general fix,
-   independent of plans, for the case where the model does not batch on its
-   own. Test-3 shows it *can* batch; test-4 shows it does not reliably, so
-   the tool should not depend on it choosing to.
+## What it could not do, and said so
 
-Cost of the difference: 42 items in one turn is ~31k tokens. In 42 turns it
-is ~1.3M. Same work, ~40x the bill.
+**The multivariable linear regression failed.** The plan's third planned test
+did not run: statsmodels/patsy formula parsing failed, and after renaming
+columns a `ValueError: zero-size array to reduction operation maximum` came
+back from statsmodels' exog handling. The agent reported this plainly -
+*"I report the failure plainly rather than invent results"* - listed the exact
+error, and offered two concrete retries (`sm.OLS` on arrays instead of formula
+parsing being the sensible one).
 
-## Also found: no retry on LLM calls (fixed)
+That is the correct behaviour and the hard rule in `SYSTEM_PROMPT` working: the
+baseline_table and spearman stages completed with real numbers, the regression
+did not, and the report says which is which. But **the run is incomplete against
+its own plan** - one of three planned tests is missing.
 
-The first attempt at this run, on Azure, died at turn 18 of ~20:
+**`PSQ18_OVERALL_MEAN` was not produced under that name.** The plan's declared
+outcome does not exist in the CSV; `score_items_tool` created
+`Patient_satisfaction_score` instead. Same 18 items, different name. The agent
+flagged the discrepancy rather than silently substituting, which is right, but
+the plan's variable naming is still unhonoured.
 
-```
-openai.RateLimitError: 429 ... rate_limit_exceeded (gpt-5-mini, eastus2)
-```
+## Still open
 
-392,713 tokens in 292s = ~80,700 tokens/min, over that deployment's quota.
-`_with_retry` in `agent_tools.py` wraps **tools**, and its retryable set is
-E2B's exceptions — nothing in this project had ever retried an *LLM* call,
-and `max_retries` was unset (SDK default 2). A transient, explicitly
-retryable error therefore destroyed a nearly-complete run.
+- **The regression.** Fitting via `sm.OLS` on arrays rather than patsy formulas
+  is the obvious next step; formula parsing on 58 sentence-length column names
+  is a losing game.
+- **Seven PSQI components are `method: "custom"`** with no algorithm anywhere in
+  the JSON - the plan points at a `scoring.notes` that the file does not
+  contain. The agent scored PSQI as a flat 14-item scale instead of the seven
+  published components the plan actually specifies. It did not invent banding,
+  but it also did not flag the substitution as prominently as it flagged the
+  regression failure. Getting `scoring.notes` into the export is the fix.
+- **The gate phase still cannot read the plan** (only `read_excel_tool`,
+  `profile_tool`, `submit_plan_tool`), so it decides ambiguity without access
+  to the declared outcome.
+- **The data dictionary is ~2,521 tokens** here versus ~766 in test-3, because
+  the headers are sentences. It duplicates much of what `column_map` serves on
+  demand, but cannot simply be truncated - the agent needs exact names to index
+  the dataframe.
 
-Fixed in `_MODEL_KWARGS`: `max_retries=8`, `request_timeout=300`. The SDK
-backs off exponentially and honours `Retry-After`.
+## Comparison
 
-`console_azure_ratelimited.log` is that first attempt, kept for the trace.
-
-Note this 429 is a different failure from the OpenAI `insufficient_quota`
-seen earlier in development: `rate_limit_exceeded` is transient and clears
-on its own; `insufficient_quota` means a zero balance and never does.
-
-## Other observations
-
-- **The data dictionary is now the largest pinned block: ~2,521 tokens**,
-  up from ~766 in test-3, because this CSV's headers are whole question
-  sentences. It must carry exact column names for the agent to index the
-  dataframe, so it cannot simply be truncated, but it duplicates much of
-  what `column_map` serves on demand.
-- **The gate phase has no access to the study plan.** It gets only
-  `read_excel_tool`, `profile_tool` and `submit_plan_tool`, so it decides
-  ambiguity without being able to read the declared outcome. Harmless here
-  (`assume_and_state=True`), but a gate that could call
-  `study_plan_tool(section='variables')` would know the outcome instead of
-  assuming it.
-- **Seven PSQI components are `method: "custom"`** with no algorithm in the
-  JSON — the plan points at a `scoring.notes` that does not exist in the
-  file. The agent was instructed to say so rather than invent banding; the
-  run stopped before reaching that stage, so this is still untested.
-
-## Status
-
-| | test-3 | test-4 |
-|---|---|---|
-| dataset | 53 x 50, coded headers | 292 x 58, question-text headers |
-| study plan | none | JSON, fetched in slices |
-| reverse-coded items | 4, inferred (4/4 correct) | 13, **read as fact** |
-| tool calls per turn | up to 33 | **always 1** |
-| tokens | 428,064 | 755,079 |
-| outcome | completed, verified correct | **stopped at the cap** |
-
-The plan mechanism is sound. The batching is what needs fixing before
-test-4 can be re-run.
+| | test-3 | test-4 attempt 1 | test-4 (this) |
+|---|---|---|---|
+| dataset | 53 x 50, coded | 292 x 58, question-text headers | same |
+| study plan | none | JSON, slices | JSON, slices |
+| scale commits | 33 in one turn | 19 turns, one each | **42 in one call** |
+| reverse-coded | 4, inferred | 13, read as fact | 13, read as fact |
+| tokens | 428,064 | 755,079 | **615,179** |
+| outcome | completed | **stopped at cap** | **completed** |
+| verified | to 10 dp | n/a | **to 10 dp** |
