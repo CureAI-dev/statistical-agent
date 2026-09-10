@@ -1,0 +1,10 @@
+metric,test-2 (gpt-4o-mini),test-3 (gpt-5-mini),ground truth,status
+PSS-10 reverse-coded items,none,"PSS10_4, 5, 7, 8","PSS10_4, 5, 7, 8",FIXED
+PSS-10 Cronbach alpha,0.481 (never reported),0.832,0.832,FIXED
+PSS by SEX,NaN 'insufficient sample',"U=166.5, p=0.0010967","U=166.5, p=0.0010967",FIXED
+PSS x sleep,"r=0.136, p=0.330 (null)","rho=0.565, p=1.0422e-05","rho=0.565, p=1.0422e-05",FIXED
+Coping subscales scored,0 of 3 (9 cols dropped),3 of 3,3 of 3,FIXED
+Single-item subscales,4,0,0,FIXED
+Likert items detected,2 of 50,33,33,FIXED
+Summarization events,6 in 13 steps,0,n/a,FIXED
+PSS-10 mean score,not reported,2.821,2.021,OPEN (0-anchor bug)

@@ -2,8 +2,9 @@
 Tool wrappers around the plain functions in tools.py. This is the layer
 that makes sure the model never sees a raw DataFrame (only a handle_id and
 small summaries - see FR-3.1/FR-1.3 in docs/requirements.md), and that
-data-processing code only ever runs inside the E2B sandbox
-(sandbox_tool.py), never on this machine.
+data-processing code only ever runs inside the sandbox - E2B by
+default (sandbox_tool.py), or a subprocess on this machine when no
+E2B_API_KEY is available (local_runtime.py); see _pick_runtime_class.
 
 Suggest-then-commit tools (classify_columns_tool, infer_scale_tool,
 group_items_tool) all follow the same shape: call once to see a suggestion
@@ -25,7 +26,9 @@ unexpected exception with backoff before giving up and returning an
 """
 
 import functools
+import os
 import sqlite3
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -34,8 +37,19 @@ from e2b_code_interpreter import NotEnoughSpaceException, RateLimitException, Ti
 from langchain_core.tools import tool
 
 import long_term_memory
+import study_plan
 from sandbox_tool import Runtime
-from store import CLASSIFICATIONS, GROUPS, HANDLES, SANDBOX_PATHS, SCALES, SCHEMA_SIGS, TOOL_CALLS, json_safe
+from store import (
+    CLASSIFICATIONS,
+    GROUPS,
+    HANDLES,
+    SANDBOX_PATHS,
+    SCALES,
+    SCHEMA_SIGS,
+    STUDY_PLAN,
+    TOOL_CALLS,
+    json_safe,
+)
 from tools import (
     classify_columns,
     group_items,
@@ -79,15 +93,54 @@ _RETRYABLE_EXCEPTIONS = (
 )
 
 
-def _get_sandbox() -> Runtime:
-    """Start the sandbox on first use, then reuse the same one for the rest
+def _pick_runtime_class():
+    """Choose where the agent's code runs.
+
+    E2B (a cloud sandbox) is the default and the only option that honours
+    CLAUDE.md rule 2 - code the model writes never touches this machine.
+    It needs E2B_API_KEY. Without one, every tool used to fail at the very
+    first call (read_excel_tool uploads the file), taking down runs that
+    never needed to execute code at all.
+
+    SANDBOX_BACKEND controls this:
+      "e2b"   - always E2B; fail loudly if the key is missing.
+      "local" - always run on this machine.
+      "auto"  - (default) E2B when a key is present, local otherwise.
+    """
+    backend = (os.getenv("SANDBOX_BACKEND") or "auto").strip().lower()
+    has_key = bool((os.getenv("E2B_API_KEY") or "").strip())
+
+    if backend == "e2b" or (backend == "auto" and has_key):
+        return Runtime
+    if backend not in ("auto", "local"):
+        raise ValueError(
+            f"SANDBOX_BACKEND={backend!r} is not one of 'e2b', 'local', 'auto'."
+        )
+
+    from local_runtime import LocalRuntime
+
+    print(
+        "\n*** Running code on THIS MACHINE, not in a cloud sandbox. ***\n"
+        "    No E2B_API_KEY found (set one from https://e2b.dev/dashboard?tab=keys\n"
+        "    to restore isolation, or set SANDBOX_BACKEND=e2b to fail instead of\n"
+        "    falling back). Code the model writes can read and write anything this\n"
+        "    user account can.\n",
+        file=sys.stderr,
+    )
+    return LocalRuntime
+
+
+def _get_sandbox():
+    """Start the runtime on first use, then reuse the same one for the rest
     of this run so variables/state persist across run_code_tool calls."""
     global _sandbox
     if _sandbox is None:
-        _sandbox = Runtime()
-        # scipy ships with the sandbox already; statsmodels (needed for the
-        # two regression tests) doesn't, so install it once up front rather
-        # than relying on the model to remember to.
+        _sandbox = _pick_runtime_class()()
+        # scipy ships with the E2B sandbox already; statsmodels (needed for
+        # the two regression tests) doesn't, so install it once up front
+        # rather than relying on the model to remember to. LocalRuntime
+        # translates the %pip line into a real pip install in its own
+        # interpreter, so this works on either backend.
         _sandbox.run_code("%pip install -q statsmodels")
     return _sandbox
 
@@ -203,7 +256,9 @@ def read_excel_tool(path: str, sheet: str | int = 0) -> dict:
     # encoding, the host df no longer matches those raw bytes - upload the
     # cleaned df instead so run_code_tool doesn't see stale junk rows or
     # hit the same encoding error pandas already worked around.
-    sandbox_path = f"/home/user/{handle_id}{Path(path).suffix}"
+    # Ask the runtime where uploads go: E2B can write to /home/user, this
+    # machine can't, so LocalRuntime answers with its own temp workdir.
+    sandbox_path = _get_sandbox().sandbox_path_for(f"{handle_id}{Path(path).suffix}")
     needs_reupload = loaded["structural_issues"].get("blank_rows_dropped") or (
         loaded.get("encoding_used") and loaded["encoding_used"] != "utf-8"
     )
@@ -640,3 +695,215 @@ def submit_plan_tool(
             already fully pre-scored.
     """
     return {"received": True, "status": status}
+
+
+@tool
+@_timed
+@_with_retry
+def study_plan_tool(
+    section: str,
+    column: str = "",
+    instrument: str = "",
+    subscale: str = "",
+) -> dict:
+    """Read the study plan for this dataset: what each column means, how
+    every derived variable is built, which items are reverse-scored, their
+    exact answer options, and the analysis that was planned.
+
+    Prefer this over working things out from the data. Anything the plan
+    states is a fact about how the study was designed, not a guess from
+    observed values - an item's reverse-coding and its anchor (0-4 vs 1-5)
+    in particular cannot be recovered reliably from the numbers alone.
+
+    Only fetch the section you need; the whole plan is far too large to
+    read at once.
+
+    Args:
+        section: which slice to read.
+            "overview"      - research question, hypothesis, design, N.
+            "analysis"      - the tests the study planned, and why.
+            "variables"     - the outcome and predictor names.
+            "column_map"    - question wording -> coded column name. Use
+                              this when the file's headers are question
+                              text rather than codes.
+            "item"          - one item's spec; needs `column`.
+            "variable"      - one derived variable's definition (method,
+                              source_items, range); needs `column`.
+            "items"         - every item for an `instrument` or `subscale`.
+            "reverse_coded" - the list of reverse-scored item columns.
+        column: the column name, for section "item" or "variable".
+        instrument: e.g. "PSS10", for section "items".
+        subscale: e.g. "Perceived helplessness", for section "items".
+    """
+    plan = STUDY_PLAN.get("plan")
+    if not plan:
+        return {"error": "No study plan was supplied for this run - infer from the data as usual."}
+
+    if section == "overview":
+        return json_safe(study_plan.overview(plan))
+    if section == "analysis":
+        return json_safe(study_plan.planned_analysis(plan))
+    if section == "variables":
+        return json_safe(study_plan.target_variables(plan))
+    if section == "column_map":
+        return json_safe(study_plan.column_map(plan))
+    if section == "reverse_coded":
+        return {"reverse_coded_items": study_plan.reverse_coded_items(plan)}
+    if section in ("item", "variable"):
+        if not column:
+            return {"error": f'section "{section}" needs a `column` argument.'}
+        getter = study_plan.item_spec if section == "item" else study_plan.variable_spec
+        found = getter(plan, column)
+        if found is None:
+            return {
+                "error": f"{column!r} is not in the study plan.",
+                "hint": "Call section='column_map' to see the plan's column names.",
+            }
+        return json_safe(found)
+    if section == "items":
+        if not (instrument or subscale):
+            return {"error": 'section "items" needs an `instrument` or a `subscale`.'}
+        found = study_plan.items_for(plan, instrument=instrument or None, subscale=subscale or None)
+        if not found:
+            return {"error": f"No items matched instrument={instrument!r} subscale={subscale!r}."}
+        return json_safe({"items": found, "n": len(found)})
+
+    return {
+        "error": f"Unknown section {section!r}.",
+        "valid_sections": [
+            "overview", "analysis", "variables", "column_map",
+            "item", "variable", "items", "reverse_coded",
+        ],
+    }
+
+
+def _plan_likert_items(plan: dict) -> list[dict]:
+    """Every questionnaire item the plan marks as a Likert response - the
+    set infer_scales_tool commits when from_plan=True."""
+    return [
+        q
+        for section in plan.get("questionnaire", {}).get("sections", [])
+        for q in section.get("questions", [])
+        if q.get("response_type") == "likert" and q.get("column")
+    ]
+
+
+@tool
+@_timed
+@_with_retry
+def infer_scales_tool(
+    handle_id: str,
+    from_plan: bool = False,
+    items: list[dict] | None = None,
+    columns: list[str] | None = None,
+) -> dict:
+    """Commit the scales for MANY Likert items in one call. Use this instead
+    of calling infer_scale_tool once per item.
+
+    A survey has tens of Likert items and every separate tool call costs a
+    whole model round trip with the full conversation resent. One real run
+    spent 755,079 tokens getting 19 of 42 items scaled that way and was cut
+    off by the token budget before any analysis ran; the same work in one
+    call is a single round trip.
+
+    Two ways to use it:
+
+    - from_plan=True (preferred when a study plan is loaded): take every
+      item's anchor, label->score map and reverse-coding straight from the
+      plan. These are stated design facts, so nothing needs inferring and
+      you do not have to retype them. Restrict to some items with `columns`.
+    - items=[...]: commit your own judgments in bulk, one entry per item,
+      e.g. [{"col": "PSS10_4", "reverse_coded": true,
+              "label_to_score": {"Never": 0, ...}}, ...].
+
+    Returns one line per item plus a `failed` list, so a bad column name
+    does not lose the rest of the batch.
+
+    Args:
+        handle_id: the id returned by read_excel_tool.
+        from_plan: commit every Likert item from the study plan.
+        items: explicit per-item overrides (col, reverse_coded, label_to_score).
+        columns: with from_plan, only these columns.
+    """
+    if handle_id not in HANDLES:
+        return {"error": f"No file loaded with handle_id '{handle_id}'. Call read_excel_tool first."}
+    if not from_plan and not items:
+        return {"error": "Pass from_plan=True, or `items` with one entry per column."}
+
+    if from_plan:
+        plan = STUDY_PLAN.get("plan")
+        if not plan:
+            return {"error": "No study plan was supplied for this run - pass `items` instead."}
+        wanted = set(columns) if columns else None
+        # A plan names items by code (PSS10_4) but a raw survey export's
+        # headers are the question wording, and only the plan knows they are
+        # the same thing. Resolve each item to whichever of the two actually
+        # exists in this dataframe, so from_plan works on both shapes -
+        # without this every item fails as "not a column in this file".
+        present = set(HANDLES[handle_id].columns)
+        items = []
+        for question in _plan_likert_items(plan):
+            spec = study_plan.item_spec(plan, question["column"])
+            if not spec:
+                continue
+            if wanted is not None and spec["column"] not in wanted:
+                continue
+            text = (spec.get("text") or "").strip()
+            actual = spec["column"] if spec["column"] in present else (text if text in present else None)
+            if actual is None:
+                continue
+            items.append(
+                {
+                    "col": actual,
+                    "reverse_coded": spec.get("reverse_coded"),
+                    "label_to_score": spec.get("label_to_score") or None,
+                    "plan_column": spec["column"],
+                }
+            )
+        if not items:
+            return {
+                "error": "None of the study plan's Likert items match a column in this file.",
+                "hint": "Check study_plan_tool(section='column_map') against the file's real headers.",
+            }
+
+    df = HANDLES[handle_id]
+    committed: dict[str, dict] = {}
+    failed: list[dict] = []
+    for entry in items:
+        col = entry.get("col")
+        if not col:
+            failed.append({"item": entry, "reason": "no 'col' key"})
+            continue
+        if col not in df.columns:
+            failed.append({"col": col, "reason": "not a column in this file"})
+            continue
+        handle = {"handle_id": handle_id, "dataframe": df}
+        result = {**json_safe(infer_scale(handle, col))}
+        reverse_coded = entry.get("reverse_coded")
+        label_to_score = entry.get("label_to_score")
+        if reverse_coded is not None:
+            result["reverse_coded"] = reverse_coded
+        if label_to_score:
+            result["label_to_score"] = label_to_score
+            result["n_points"] = len(label_to_score)
+        if reverse_coded is not None or label_to_score:
+            result["confidence"] = "overridden"
+            long_term_memory.remember_scale(SCHEMA_SIGS[handle_id], col, result)
+        SCALES.setdefault(handle_id, {})[col] = result
+        committed[col] = {
+            "plan_column": entry.get("plan_column"),
+            "n_points": result.get("n_points"),
+            "reverse_coded": result.get("reverse_coded"),
+            "confidence": result.get("confidence"),
+        }
+
+    return {
+        "committed": committed,
+        "n_committed": len(committed),
+        "failed": failed,
+        "note": (
+            "Scales are committed. Full label->score maps are not echoed back "
+            "to keep this result small - they are stored and used by "
+            "score_items_tool."
+        ),
+    }

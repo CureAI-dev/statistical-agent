@@ -77,7 +77,7 @@ far, by file:
   need (`ls`, `write_file`, `edit_file`, `delete`, `glob`, `grep`,
   `execute`, `task` - `read_file` stays available so the summarization
   middleware's own message-offload/recovery path still works), and
-  `run()`. LLM is OpenAI (`gpt-4o-mini`) via `langchain_openai`. One
+  `run()`. LLM is OpenAI (`gpt-5`) via `langchain_openai`. One
   sandbox is shared per run so state persists across `run_code_tool`
   calls (FR-9.7). `statsmodels` gets installed into the sandbox on
   startup (only `scipy` ships by default). `run()`'s trace printer walks
@@ -107,8 +107,11 @@ were correctly skipped on the file with no raw Likert items.
 Known limitation, not a code bug: the agent's own reverse-coding judgment
 is sometimes inconsistent across runs, occasionally producing a low or
 negative Cronbach's alpha. The tool correctly surfaces this - that's
-what alpha is for - but a small model (`gpt-4o-mini`) doesn't always loop
-back and fix it before reporting, even though the prompt asks it to.
+what alpha is for - but a small model doesn't always loop back and fix it
+before reporting, even though the prompt asks it to. This was observed
+on `gpt-4o-mini`; the model has since been switched to `gpt-5` (a
+reasoning model) partly to address exactly this, so treat the limitation
+as unverified rather than fixed until it's re-tested across repeat runs.
 
 Survey-mode pipeline (FR-9.1-9.8) is now fully built (column
 classification, scale inference, grouping, scoring). Persistent,

@@ -25,7 +25,7 @@ Autonomus Agent/
 ### Prerequisites
 - Python (managed via `uv`)
 - E2B API Key (for sandbox execution)
-- OpenAI API Key (for the LLM, currently using `gpt-4o-mini`)
+- OpenAI API Key (for the LLM, currently using `gpt-5`)
 
 ### Installation & Running
 
@@ -37,8 +37,25 @@ Autonomus Agent/
 2. Create a `.env` file in the `excel-analysis-agent-backend` directory and add your API keys:
    ```env
    E2B_API_KEY=your_e2b_api_key
+
+   # Which provider serves the LLM: "openai" or "azure" (default: openai).
+   LLM_SOURCE=openai
+
+   # Used when LLM_SOURCE=openai
    OPENAI_API_KEY=your_openai_api_key
+   OPENAI_MODEL=gpt-5-mini
+
+   # Used when LLM_SOURCE=azure. AZURE_DEPLOYMENT is the *deployment* name
+   # you created in Azure, which need not match the model name.
+   AZURE_API_BASE=https://your-resource.openai.azure.com/
+   AZURE_API_VERSION=2025-04-01-preview
+   AZURE_DEPLOYMENT=gpt-5
+   AZURE_API_KEY=your_azure_api_key
    ```
+
+   Optional guardrail: `MAX_RUN_TOKENS` caps total tokens for one run
+   (default 750,000). A run that crosses it stops and reports partial
+   progress instead of continuing to spend.
 
 3. Run the smoke test using `uv`:
    ```bash

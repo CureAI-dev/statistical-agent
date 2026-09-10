@@ -54,6 +54,14 @@ GROUPS: dict = {}
 TOOL_CALLS: list = []
 
 
+# The study plan for this run, if one was supplied (see study_plan.py).
+# A single-entry dict rather than a module global so study_plan_tool and
+# agent.py read the same object without either importing the other, matching
+# how HANDLES/SCALES are shared. Empty when no plan was given - the agent
+# then infers everything itself, exactly as it did before plans existed.
+STUDY_PLAN: dict = {}
+
+
 def json_safe(value: Any) -> Any:
     """
     pandas/numpy stats (df.describe(), null counts, etc.) come back as

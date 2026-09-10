@@ -14,6 +14,11 @@ dependencies = [
     "openpyxl>=3.1.5",
     "pandas>=3.0.5",
     "python-dotenv>=1.2.3",
+    # Shipped by the E2B sandbox image, but not present when the agent falls
+    # back to running code on this machine (local_runtime.py) - scipy for the
+    # statistical tests, statsmodels for the two regressions.
+    "scipy>=1.14",
+    "statsmodels>=0.14",
 ]
 
 [dependency-groups]
