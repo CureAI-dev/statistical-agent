@@ -1,0 +1,410 @@
+{
+  "source_sha256": {
+    "Perceived_stress_and_patient_satisfaction_among_adults_using_telemedicine_follow-up_clinics_simulated.csv": "58a6c98a0820344a84d388976abbb2696958e915da10342fea465247edf2be2a",
+    "Sleep_quality_associated_with_perceived_stress_among_psychiatric_nurses_in_acute_inpatient_units_simulated (1).csv": "74b064c407c47075c350d6e40abfdab40bc66226f496ce138d2ea5d24f77591c"
+  },
+  "shape": [
+    292,
+    58
+  ],
+  "correct_pss_total": {
+    "n": 292,
+    "mean": 21.825342465753426,
+    "sd": 9.460733184637714,
+    "min": 1.0,
+    "max": 40.0
+  },
+  "correct_pss_mean": {
+    "n": 292,
+    "mean": 2.1825342465753423,
+    "sd": 0.9460733184637713,
+    "min": 0.1,
+    "max": 4.0
+  },
+  "legacy_pss_mean": {
+    "n": 292,
+    "mean": 2.9825342465753426,
+    "sd": 0.9460733184637713,
+    "min": 0.9,
+    "max": 4.8
+  },
+  "scores": {
+    "Patient_satisfaction_score": {
+      "n": 292,
+      "mean": 3.082762557077626,
+      "sd": 0.8172040267811468,
+      "min": 1.3333333333333333,
+      "max": 5.0
+    },
+    "PSS10_score": {
+      "n": 292,
+      "mean": 2.9825342465753426,
+      "sd": 0.9460733184637713,
+      "min": 0.9,
+      "max": 4.8
+    },
+    "PSQI_score": {
+      "n": 292,
+      "mean": 1.4391088363691102,
+      "sd": 0.6909074016340774,
+      "min": 0.0,
+      "max": 3.0
+    }
+  },
+  "alphas": {
+    "PSQ18": 0.8834432312453185,
+    "PSS10": 0.8685056936661476,
+    "PSQI": 0.8819475390469748
+  },
+  "psqi_alpha_n": 274,
+  "correlations": {
+    "Patient_satisfaction_score_vs_PSS10_score": {
+      "rho": 0.6926553648428851,
+      "p": 4.746869038247774e-43
+    },
+    "Patient_satisfaction_score_vs_PSQI_score": {
+      "rho": 0.7319640116160957,
+      "p": 3.0250576948752343e-50
+    },
+    "PSS10_score_vs_PSQI_score": {
+      "rho": 0.6547939320240067,
+      "p": 3.904287427964613e-37
+    }
+  },
+  "group_tests": {
+    "SEX": {
+      "U": 2486.5,
+      "p": 1.3941516379421848e-29,
+      "Male": {
+        "n": 137,
+        "mean": 2.510543390105434,
+        "sd": 0.6147962583674532,
+        "min": 1.3333333333333333,
+        "max": 4.277777777777778
+      },
+      "Female": {
+        "n": 155,
+        "mean": 3.5885304659498205,
+        "sd": 0.6159358530528157,
+        "min": 2.0555555555555554,
+        "max": 5.0
+      }
+    },
+    "COMORBIDITY": {
+      "U": 9035.0,
+      "p": 0.6881419196598693,
+      "Yes": {
+        "n": 94,
+        "mean": 3.055555555555556,
+        "sd": 0.7811838714877656,
+        "min": 1.5555555555555556,
+        "max": 4.777777777777778
+      },
+      "No": {
+        "n": 198,
+        "mean": 3.0956790123456783,
+        "sd": 0.8353868496340048,
+        "min": 1.3333333333333333,
+        "max": 5.0
+      }
+    },
+    "EDUCATION": {
+      "H": 3.759638223842594,
+      "p": 0.5845144581130968
+    }
+  },
+  "sleep_hours": {
+    "n": 292,
+    "mean": 38.12328767123287,
+    "sd": 12.586137801384856,
+    "min": 18.0,
+    "max": 77.0,
+    "over_24": 236
+  },
+  "missing_by_code": {
+    "INCOME_BAND": 8,
+    "CONDITION_DURATION_MONTHS": 13,
+    "PSQI_BEDTIME": 292,
+    "PSQI_WAKETIME": 292,
+    "PSQI_5J": 18
+  },
+  "subscales": {
+    "PSQ18_GENERAL_SATISFACTION": {
+      "n": 292,
+      "mean": 2.960616438356164,
+      "sd": 1.2439504319373693,
+      "min": 1.0,
+      "max": 5.0,
+      "alpha": 0.6838863991999191
+    },
+    "PSQ18_TECHNICAL_QUALITY": {
+      "n": 292,
+      "mean": 2.9657534246575343,
+      "sd": 1.1057216614500756,
+      "min": 1.0,
+      "max": 5.0,
+      "alpha": 0.8009051370780532
+    },
+    "PSQ18_INTERPERSONAL_MANNER": {
+      "n": 292,
+      "mean": 3.0821917808219177,
+      "sd": 1.1956786413018954,
+      "min": 1.0,
+      "max": 5.0,
+      "alpha": 0.6069476457029965
+    },
+    "PSQ18_COMMUNICATION": {
+      "n": 292,
+      "mean": 2.9315068493150687,
+      "sd": 1.2193036954225716,
+      "min": 1.0,
+      "max": 5.0,
+      "alpha": 0.6329950604774872
+    },
+    "PSQ18_FINANCIAL_ASPECTS": {
+      "n": 292,
+      "mean": 3.2260273972602738,
+      "sd": 1.2007760832045047,
+      "min": 1.0,
+      "max": 5.0,
+      "alpha": 0.6515042687605086
+    },
+    "PSQ18_TIME_SPENT_WITH_DOCTOR": {
+      "n": 292,
+      "mean": 3.337328767123288,
+      "sd": 1.1643665836089934,
+      "min": 1.0,
+      "max": 5.0,
+      "alpha": 0.6069231320108592
+    },
+    "PSQ18_ACCESSIBILITY_CONVENIENCE": {
+      "n": 292,
+      "mean": 3.1378424657534247,
+      "sd": 1.138424999836317,
+      "min": 1.0,
+      "max": 5.0,
+      "alpha": 0.8034286892603744
+    },
+    "PSQ18_OVERALL_MEAN": {
+      "n": 292,
+      "mean": 3.082762557077626,
+      "sd": 0.8172040267811468,
+      "min": 1.3333333333333333,
+      "max": 5.0,
+      "alpha": 0.8834432312453185
+    },
+    "PSS10_TOTAL": {
+      "n": 292,
+      "mean": 21.825342465753426,
+      "sd": 9.460733184637714,
+      "min": 1.0,
+      "max": 40.0,
+      "alpha": 0.8685056936661476
+    },
+    "PSS10_HELPLESSNESS": {
+      "n": 292,
+      "mean": 12.222602739726028,
+      "sd": 6.483532092268082,
+      "min": 0.0,
+      "max": 24.0,
+      "alpha": 0.8578650180198264
+    },
+    "PSS10_SELF_EFFICACY": {
+      "n": 292,
+      "mean": 9.602739726027398,
+      "sd": 4.355317407372997,
+      "min": 0.0,
+      "max": 16.0,
+      "alpha": 0.8020733549404314
+    }
+  },
+  "regression_failure": {
+    "numeric_predictors": [
+      "age",
+      "For_how_many_months_have_you_had_this_condition_",
+      "During_the_past_month_what_time_have_you_usually_gone_to_bed_at_night_",
+      "During_the_past_month_how_long_in_minutes_has_it_usually_taken_you_to_fall_asleep_each_night_",
+      "During_the_past_month_what_time_have_you_usually_gotten_up_in_the_morning_",
+      "During_the_past_month_how_many_hours_of_actual_sleep_did_you_get_at_night_This_may_be_different_than_the_number_of_hours_you_spent_in_bed_",
+      "pss_score",
+      "psqi_score",
+      "sex_Male",
+      "education_No_formal_education",
+      "education_Postgraduate_degree",
+      "education_Primary",
+      "education_Secondary",
+      "education_Undergraduate_degree",
+      "comorbidity_Yes"
+    ],
+    "all_missing_predictors": [
+      "During_the_past_month_what_time_have_you_usually_gone_to_bed_at_night_",
+      "During_the_past_month_what_time_have_you_usually_gotten_up_in_the_morning_"
+    ],
+    "complete_rows": 0,
+    "reproduced_error": "ValueError: zero-size array to reduction operation maximum which has no identity"
+  },
+  "reduced_model_diagnostic_only": {
+    "n": 292,
+    "r_squared": 0.6884060113781378,
+    "matrix_rank": 11,
+    "matrix_columns": 11,
+    "warning": "Uses the nonstandard PSQI proxy and legacy PSS mean; not the planned analysis."
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "tool": "read_excel_tool",
+      "input": 2095,
+      "output": 129,
+      "total": 2224
+    },
+    {
+      "turn": 2,
+      "tool": "profile_tool",
+      "input": 3255,
+      "output": 430,
+      "total": 3685
+    },
+    {
+      "turn": 3,
+      "tool": "submit_plan_tool",
+      "input": 10110,
+      "output": 1208,
+      "total": 11318
+    },
+    {
+      "turn": 4,
+      "tool": "profile_tool",
+      "input": 10682,
+      "output": 46,
+      "total": 10728
+    },
+    {
+      "turn": 5,
+      "tool": "recall_memory_tool",
+      "input": 17537,
+      "output": 48,
+      "total": 17585
+    },
+    {
+      "turn": 6,
+      "tool": "classify_columns_tool",
+      "input": 17598,
+      "output": 48,
+      "total": 17646
+    },
+    {
+      "turn": 7,
+      "tool": "study_plan_tool",
+      "input": 23218,
+      "output": 88,
+      "total": 23306
+    },
+    {
+      "turn": 8,
+      "tool": "study_plan_tool",
+      "input": 23423,
+      "output": 18,
+      "total": 23441
+    },
+    {
+      "turn": 9,
+      "tool": "study_plan_tool",
+      "input": 23593,
+      "output": 18,
+      "total": 23611
+    },
+    {
+      "turn": 10,
+      "tool": "infer_scales_tool",
+      "input": 23782,
+      "output": 118,
+      "total": 23900
+    },
+    {
+      "turn": 11,
+      "tool": "group_items_tool",
+      "input": 26024,
+      "output": 41,
+      "total": 26065
+    },
+    {
+      "turn": 12,
+      "tool": "group_items_tool",
+      "input": 29061,
+      "output": 825,
+      "total": 29886
+    },
+    {
+      "turn": 13,
+      "tool": "score_items_tool",
+      "input": 30685,
+      "output": 41,
+      "total": 30726
+    },
+    {
+      "turn": 14,
+      "tool": "run_code_tool",
+      "input": 32793,
+      "output": 1429,
+      "total": 34222
+    },
+    {
+      "turn": 15,
+      "tool": "run_code_tool",
+      "input": 35614,
+      "output": 2814,
+      "total": 38428
+    },
+    {
+      "turn": 16,
+      "tool": "run_code_tool",
+      "input": 36935,
+      "output": 3733,
+      "total": 40668
+    },
+    {
+      "turn": 17,
+      "tool": "recommend_test_tool",
+      "input": 38453,
+      "output": 2592,
+      "total": 41045
+    },
+    {
+      "turn": 18,
+      "tool": "run_code_tool",
+      "input": 38527,
+      "output": 2418,
+      "total": 40945
+    },
+    {
+      "turn": 19,
+      "tool": "run_code_tool",
+      "input": 39327,
+      "output": 392,
+      "total": 39719
+    },
+    {
+      "turn": 20,
+      "tool": "study_plan_tool",
+      "input": 40747,
+      "output": 862,
+      "total": 41609
+    },
+    {
+      "turn": 21,
+      "tool": "study_plan_tool",
+      "input": 41872,
+      "output": 798,
+      "total": 42670
+    },
+    {
+      "turn": 22,
+      "tool": "final",
+      "input": 43727,
+      "output": 8025,
+      "total": 51752
+    }
+  ],
+  "timed_tool_seconds": 13.933
+}
