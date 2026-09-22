@@ -15,6 +15,12 @@ class Runtime:
     def __init__(self):
         self.sandbox = Sandbox.create(timeout=self.DEFAULT_TIMEOUT_SECONDS)
 
+    def sandbox_path_for(self, filename: str) -> str:
+        """Where an uploaded file will live inside the sandbox. Paired with
+        LocalRuntime.sandbox_path_for so agent_tools doesn't have to know
+        which backend it got."""
+        return f"/home/user/{filename}"
+
     def upload_file(self, local_path: str, remote_path: str) -> None:
         with open(local_path, "rb") as file:
             self.sandbox.files.write(remote_path, file)

@@ -1,0 +1,6 @@
+subscale,n_items,cronbachs_alpha,acceptable_ge_0.7,n_respondents,n_incomplete,reverse_coded_items
+PSS10_total,10,0.832,yes,53,0,PSS10_4; PSS10_5; PSS10_7; PSS10_8
+PROBLEMFOCUSED_COPING,3,0.76,yes,53,0,none
+EMOTION_REGULATION_COPING,3,0.754,yes,53,0,none
+SUPPORTSEEKING_COPING,3,0.668,no,53,0,none
+PSQI_components,14,0.805,yes,53,3,none

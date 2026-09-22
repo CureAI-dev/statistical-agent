@@ -1,0 +1,2342 @@
+{
+  "schema_version": "1.0",
+  "document": "study_plan",
+  "project_id": "0b89c906d12742e6994d61a0962b9402",
+  "status": "draft",
+  "title": "Perceived stress and patient satisfaction among adults using telemedicine follow-up clinics",
+  "study": {
+    "design": "cross-sectional",
+    "population": "Adults completing scheduled telemedicine follow-up visits in the health system during the study window",
+    "setting": "Telemedicine follow-up clinic of the hospital network, with recruitment immediately after each virtual visit via secure messaging",
+    "sampling_method": "consecutive",
+    "inclusion_criteria": [
+      "Age 18 years or older",
+      "Completed a telemedicine follow-up visit within the study period",
+      "Able to provide informed consent",
+      "Has email or patient portal access for survey completion"
+    ],
+    "exclusion_criteria": [
+      "Severe cognitive impairment documented in the medical record",
+      "Currently hospitalized for acute psychiatric crisis",
+      "Non-English speakers without translation support"
+    ],
+    "n_analysed": 292,
+    "n_recruit": 389,
+    "sample_size_basis": "Cross-sectional prevalence (Cochran)",
+    "minutes_per_respondent": 20
+  },
+  "research_question": "Among adults attending telemedicine follow-up clinics, how is patient satisfaction associated with perceived stress and sleep quality?",
+  "aim": "assess overall telemedicine patient satisfaction in relation to perceived stress and sleep quality among adults attending telemedicine follow-up clinics",
+  "primary_hypothesis": "Higher perceived stress scores and poorer sleep quality components will be associated with lower telemedicine patient satisfaction scores.",
+  "secondary_objectives": [
+    "Compare satisfaction subscale scores against perceived stress and sleep quality indicators.",
+    "Explore whether demographic factors modify associations between stress, sleep quality, and satisfaction."
+  ],
+  "variables": {
+    "outcome": {
+      "column": "PSQ18_OVERALL_MEAN",
+      "justification": "PSQ18_OVERALL_MEAN summarizes perceived satisfaction across the telemedicine visit domains and aligns directly with the study focus on patient satisfaction."
+    },
+    "predictors": [
+      "PSS10_TOTAL",
+      "PSQI_COMP_SUBJECTIVE_QUALITY",
+      "PSQI_COMP_SLEEP_LATENCY",
+      "PSQI_COMP_SLEEP_DURATION",
+      "PSQI_COMP_SLEEP_EFFICIENCY",
+      "PSQI_COMP_SLEEP_DISTURBANCE",
+      "PSQI_COMP_SLEEP_MEDICATION",
+      "PSQI_COMP_DAYTIME_DYSFUNCTION",
+      "AGE",
+      "SEX",
+      "EDUCATION",
+      "COMORBIDITY"
+    ],
+    "grouping": null,
+    "all": [
+      {
+        "column": "PSQ18_GENERAL_SATISFACTION",
+        "meaning": "General satisfaction subscale score",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Mean of 2 item(s): PSQ18_3, PSQ18_17",
+        "values": "1–5",
+        "instrument": "PSQ-18",
+        "method": "mean",
+        "source_items": [
+          "PSQ18_3",
+          "PSQ18_17"
+        ],
+        "range": [
+          1,
+          5
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSQ18_TECHNICAL_QUALITY",
+        "meaning": "Technical quality subscale score",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Mean of 4 item(s): PSQ18_2, PSQ18_4, PSQ18_6, PSQ18_14",
+        "values": "1–5",
+        "instrument": "PSQ-18",
+        "method": "mean",
+        "source_items": [
+          "PSQ18_2",
+          "PSQ18_4",
+          "PSQ18_6",
+          "PSQ18_14"
+        ],
+        "range": [
+          1,
+          5
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSQ18_INTERPERSONAL_MANNER",
+        "meaning": "Interpersonal manner subscale score",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Mean of 2 item(s): PSQ18_10, PSQ18_11",
+        "values": "1–5",
+        "instrument": "PSQ-18",
+        "method": "mean",
+        "source_items": [
+          "PSQ18_10",
+          "PSQ18_11"
+        ],
+        "range": [
+          1,
+          5
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSQ18_COMMUNICATION",
+        "meaning": "Communication subscale score",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Mean of 2 item(s): PSQ18_1, PSQ18_13",
+        "values": "1–5",
+        "instrument": "PSQ-18",
+        "method": "mean",
+        "source_items": [
+          "PSQ18_1",
+          "PSQ18_13"
+        ],
+        "range": [
+          1,
+          5
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSQ18_FINANCIAL_ASPECTS",
+        "meaning": "Financial aspects subscale score",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Mean of 2 item(s): PSQ18_5, PSQ18_7",
+        "values": "1–5",
+        "instrument": "PSQ-18",
+        "method": "mean",
+        "source_items": [
+          "PSQ18_5",
+          "PSQ18_7"
+        ],
+        "range": [
+          1,
+          5
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSQ18_TIME_SPENT_WITH_DOCTOR",
+        "meaning": "Time spent with doctor subscale score",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Mean of 2 item(s): PSQ18_12, PSQ18_15",
+        "values": "1–5",
+        "instrument": "PSQ-18",
+        "method": "mean",
+        "source_items": [
+          "PSQ18_12",
+          "PSQ18_15"
+        ],
+        "range": [
+          1,
+          5
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSQ18_ACCESSIBILITY_CONVENIENCE",
+        "meaning": "Accessibility and convenience subscale score",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Mean of 4 item(s): PSQ18_8, PSQ18_9, PSQ18_16, PSQ18_18",
+        "values": "1–5",
+        "instrument": "PSQ-18",
+        "method": "mean",
+        "source_items": [
+          "PSQ18_8",
+          "PSQ18_9",
+          "PSQ18_16",
+          "PSQ18_18"
+        ],
+        "range": [
+          1,
+          5
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSQ18_OVERALL_MEAN",
+        "meaning": "Unweighted mean of all 18 reverse-corrected items (informal overall index)",
+        "role": "Outcome (dependent)",
+        "type": "continuous",
+        "derivation": "Mean of 18 item(s): PSQ18_1, PSQ18_2, PSQ18_3, PSQ18_4, PSQ18_5, PSQ18_6, PSQ18_7, PSQ18_8 (+10 more)",
+        "values": "1–5",
+        "instrument": "PSQ-18",
+        "method": "mean",
+        "source_items": [
+          "PSQ18_1",
+          "PSQ18_2",
+          "PSQ18_3",
+          "PSQ18_4",
+          "PSQ18_5",
+          "PSQ18_6",
+          "PSQ18_7",
+          "PSQ18_8",
+          "PSQ18_9",
+          "PSQ18_10",
+          "PSQ18_11",
+          "PSQ18_12",
+          "PSQ18_13",
+          "PSQ18_14",
+          "PSQ18_15",
+          "PSQ18_16",
+          "PSQ18_17",
+          "PSQ18_18"
+        ],
+        "range": [
+          1,
+          5
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSS10_TOTAL",
+        "meaning": "PSS-10 total perceived stress score",
+        "role": "Predictor (independent)",
+        "type": "continuous",
+        "derivation": "Sum of 10 item(s): PSS10_1, PSS10_2, PSS10_3, PSS10_4, PSS10_5, PSS10_6, PSS10_7, PSS10_8 (+2 more)",
+        "values": "0–40",
+        "instrument": "PSS10",
+        "method": "sum",
+        "source_items": [
+          "PSS10_1",
+          "PSS10_2",
+          "PSS10_3",
+          "PSS10_4",
+          "PSS10_5",
+          "PSS10_6",
+          "PSS10_7",
+          "PSS10_8",
+          "PSS10_9",
+          "PSS10_10"
+        ],
+        "range": [
+          0,
+          40
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSS10_HELPLESSNESS",
+        "meaning": "Perceived helplessness subscale score",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Sum of 6 item(s): PSS10_1, PSS10_2, PSS10_3, PSS10_6, PSS10_9, PSS10_10",
+        "values": "0–24",
+        "instrument": "PSS10",
+        "method": "sum",
+        "source_items": [
+          "PSS10_1",
+          "PSS10_2",
+          "PSS10_3",
+          "PSS10_6",
+          "PSS10_9",
+          "PSS10_10"
+        ],
+        "range": [
+          0,
+          24
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSS10_SELF_EFFICACY",
+        "meaning": "Perceived self-efficacy subscale score",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Sum of 4 item(s): PSS10_4, PSS10_5, PSS10_7, PSS10_8",
+        "values": "0–16",
+        "instrument": "PSS10",
+        "method": "sum",
+        "source_items": [
+          "PSS10_4",
+          "PSS10_5",
+          "PSS10_7",
+          "PSS10_8"
+        ],
+        "range": [
+          0,
+          16
+        ],
+        "levels": null
+      },
+      {
+        "column": "PSS10_CATEGORY",
+        "meaning": "PSS-10 stress category",
+        "role": "Collected, not in the model",
+        "type": "ordinal",
+        "derivation": "Cut point on PSS10_TOTAL",
+        "values": "Low stress, Moderate stress, High stress",
+        "instrument": "PSS10",
+        "method": "cutoff",
+        "source_items": [
+          "PSS10_TOTAL"
+        ],
+        "range": null,
+        "levels": [
+          "Low stress",
+          "Moderate stress",
+          "High stress"
+        ]
+      },
+      {
+        "column": "PSQI_COMP_SUBJECTIVE_QUALITY",
+        "meaning": "Component 1: Subjective sleep quality (requires the published 0-3 banding algorithm, not a direct value - see scoring.notes)",
+        "role": "Predictor (independent)",
+        "type": "ordinal",
+        "derivation": "Published scoring algorithm applied to PSQI_6",
+        "values": null,
+        "instrument": "PSQI",
+        "method": "custom",
+        "source_items": [
+          "PSQI_6"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "PSQI_COMP_SLEEP_LATENCY",
+        "meaning": "Component 2: Sleep latency (requires the published 0-3 banding algorithm combining PSQI_LATENCY_MIN and PSQI_5A - see scoring.notes)",
+        "role": "Predictor (independent)",
+        "type": "ordinal",
+        "derivation": "Published scoring algorithm applied to PSQI_LATENCY_MIN, PSQI_5A",
+        "values": null,
+        "instrument": "PSQI",
+        "method": "custom",
+        "source_items": [
+          "PSQI_LATENCY_MIN",
+          "PSQI_5A"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "PSQI_COMP_SLEEP_DURATION",
+        "meaning": "Component 3: Sleep duration (requires the published 0-3 banding of PSQI_HOURS_SLEEP - see scoring.notes)",
+        "role": "Predictor (independent)",
+        "type": "ordinal",
+        "derivation": "Published scoring algorithm applied to PSQI_HOURS_SLEEP",
+        "values": null,
+        "instrument": "PSQI",
+        "method": "custom",
+        "source_items": [
+          "PSQI_HOURS_SLEEP"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "PSQI_COMP_SLEEP_EFFICIENCY",
+        "meaning": "Component 4: Habitual sleep efficiency (requires computing (hours slept / time in bed) x 100 from bed/wake times, then banding 0-3 - see scoring.notes)",
+        "role": "Predictor (independent)",
+        "type": "ordinal",
+        "derivation": "Published scoring algorithm applied to PSQI_BEDTIME, PSQI_WAKETIME, PSQI_HOURS_SLEEP",
+        "values": null,
+        "instrument": "PSQI",
+        "method": "custom",
+        "source_items": [
+          "PSQI_BEDTIME",
+          "PSQI_WAKETIME",
+          "PSQI_HOURS_SLEEP"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "PSQI_COMP_SLEEP_DISTURBANCE",
+        "meaning": "Component 5: Sleep disturbances (requires summing items 5b-5j then banding 0-3 - see scoring.notes)",
+        "role": "Predictor (independent)",
+        "type": "ordinal",
+        "derivation": "Published scoring algorithm applied to PSQI_5B, PSQI_5C, PSQI_5D, PSQI_5E, PSQI_5F, PSQI_5G, PSQI_5H, PSQI_5I (+1 more)",
+        "values": null,
+        "instrument": "PSQI",
+        "method": "custom",
+        "source_items": [
+          "PSQI_5B",
+          "PSQI_5C",
+          "PSQI_5D",
+          "PSQI_5E",
+          "PSQI_5F",
+          "PSQI_5G",
+          "PSQI_5H",
+          "PSQI_5I",
+          "PSQI_5J"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "PSQI_COMP_SLEEP_MEDICATION",
+        "meaning": "Component 6: Use of sleeping medication (item 7 value is already 0-3, usable directly)",
+        "role": "Predictor (independent)",
+        "type": "ordinal",
+        "derivation": "Published scoring algorithm applied to PSQI_7",
+        "values": null,
+        "instrument": "PSQI",
+        "method": "custom",
+        "source_items": [
+          "PSQI_7"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "PSQI_COMP_DAYTIME_DYSFUNCTION",
+        "meaning": "Component 7: Daytime dysfunction (requires combining items 8 and 9 then banding 0-3 - see scoring.notes)",
+        "role": "Predictor (independent)",
+        "type": "ordinal",
+        "derivation": "Published scoring algorithm applied to PSQI_8, PSQI_9",
+        "values": null,
+        "instrument": "PSQI",
+        "method": "custom",
+        "source_items": [
+          "PSQI_8",
+          "PSQI_9"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "AGE",
+        "meaning": "Age in years",
+        "role": "Predictor (independent)",
+        "type": "continuous",
+        "derivation": "Answered directly (AGE)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "AGE"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "SEX",
+        "meaning": "Sex",
+        "role": "Predictor (independent)",
+        "type": "binary",
+        "derivation": "Answered directly (SEX)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "SEX"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "EDUCATION",
+        "meaning": "Education level",
+        "role": "Predictor (independent)",
+        "type": "ordinal",
+        "derivation": "Answered directly (EDUCATION)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "EDUCATION"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "MARITAL_STATUS",
+        "meaning": "Marital status",
+        "role": "Collected, not in the model",
+        "type": "nominal",
+        "derivation": "Answered directly (MARITAL_STATUS)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "MARITAL_STATUS"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "EMPLOYMENT",
+        "meaning": "Employment status",
+        "role": "Collected, not in the model",
+        "type": "nominal",
+        "derivation": "Answered directly (EMPLOYMENT)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "EMPLOYMENT"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "RESIDENCE",
+        "meaning": "Urban or rural residence",
+        "role": "Collected, not in the model",
+        "type": "binary",
+        "derivation": "Answered directly (RESIDENCE)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "RESIDENCE"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "INCOME_BAND",
+        "meaning": "Household income band",
+        "role": "Collected, not in the model",
+        "type": "ordinal",
+        "derivation": "Answered directly (INCOME_BAND)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "INCOME_BAND"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "COMORBIDITY",
+        "meaning": "Any long-term condition",
+        "role": "Predictor (independent)",
+        "type": "binary",
+        "derivation": "Answered directly (COMORBIDITY)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "COMORBIDITY"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "CONDITION_DURATION_MONTHS",
+        "meaning": "Condition duration in months",
+        "role": "Collected, not in the model",
+        "type": "continuous",
+        "derivation": "Answered directly (CONDITION_DURATION_MONTHS)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "CONDITION_DURATION_MONTHS"
+        ],
+        "range": null,
+        "levels": null
+      },
+      {
+        "column": "PRIOR_ADMISSION",
+        "meaning": "Previous admission for this condition",
+        "role": "Collected, not in the model",
+        "type": "binary",
+        "derivation": "Answered directly (PRIOR_ADMISSION)",
+        "values": null,
+        "instrument": "DEMO",
+        "method": "direct",
+        "source_items": [
+          "PRIOR_ADMISSION"
+        ],
+        "range": null,
+        "levels": null
+      }
+    ]
+  },
+  "analysis": {
+    "narrative": "Begin with descriptive summaries via the baseline_table to characterize satisfaction, stress, sleep quality, and covariates. Use spearman correlations to screen bivariate relationships between satisfaction, perceived stress, and each sleep component. Proceed to multivariable linear_regression with PSQ18_OVERALL_MEAN as the outcome, interpreting significant associations in the hypothesized direction as supportive findings.",
+    "tests": [
+      {
+        "test": "baseline_table",
+        "why": "Describe participant characteristics, stress, sleep, and satisfaction levels."
+      },
+      {
+        "test": "spearman",
+        "why": "Screen monotonic associations between satisfaction, stress, and ordinal sleep components."
+      },
+      {
+        "test": "linear_regression",
+        "why": "Estimate adjusted associations of stress and sleep quality indicators with satisfaction."
+      }
+    ]
+  },
+  "questionnaire": {
+    "n_sections": 4,
+    "n_questions": 56,
+    "sections": [
+      {
+        "section_id": "core-demographics",
+        "title": "Core Demographic and Clinical Background Module",
+        "abbrev": "DEMO",
+        "instructions": "",
+        "source": "Not applicable — standard background module.",
+        "license": "public domain",
+        "text_withheld": false,
+        "is_template": false,
+        "n_questions": 10,
+        "grouping": {
+          "Demographics": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "Clinical background": [
+            8,
+            9,
+            10
+          ]
+        },
+        "questions": [
+          {
+            "number": 1,
+            "text": "What is your age in completed years?",
+            "column": "AGE",
+            "subscale": "Demographics",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "numeric",
+            "options": [],
+            "options_text": "Number entered by the respondent"
+          },
+          {
+            "number": 2,
+            "text": "What is your sex?",
+            "column": "SEX",
+            "subscale": "Demographics",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "categorical",
+            "options": [
+              {
+                "label": "Male",
+                "value": 1
+              },
+              {
+                "label": "Female",
+                "value": 2
+              },
+              {
+                "label": "Prefer not to say",
+                "value": 99
+              }
+            ],
+            "options_text": "Male (1); Female (2); Prefer not to say (99)"
+          },
+          {
+            "number": 3,
+            "text": "What is the highest level of education you have completed?",
+            "column": "EDUCATION",
+            "subscale": "Demographics",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "categorical",
+            "options": [
+              {
+                "label": "No formal education",
+                "value": 1
+              },
+              {
+                "label": "Primary",
+                "value": 2
+              },
+              {
+                "label": "Secondary",
+                "value": 3
+              },
+              {
+                "label": "Higher secondary / diploma",
+                "value": 4
+              },
+              {
+                "label": "Undergraduate degree",
+                "value": 5
+              },
+              {
+                "label": "Postgraduate degree",
+                "value": 6
+              }
+            ],
+            "options_text": "No formal education (1); Primary (2); Secondary (3); Higher secondary / diploma (4); Undergraduate degree (5); Postgraduate degree (6)"
+          },
+          {
+            "number": 4,
+            "text": "What is your current marital status?",
+            "column": "MARITAL_STATUS",
+            "subscale": "Demographics",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "categorical",
+            "options": [
+              {
+                "label": "Single",
+                "value": 1
+              },
+              {
+                "label": "Married",
+                "value": 2
+              },
+              {
+                "label": "Divorced or separated",
+                "value": 3
+              },
+              {
+                "label": "Widowed",
+                "value": 4
+              }
+            ],
+            "options_text": "Single (1); Married (2); Divorced or separated (3); Widowed (4)"
+          },
+          {
+            "number": 5,
+            "text": "What is your current employment status?",
+            "column": "EMPLOYMENT",
+            "subscale": "Demographics",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "categorical",
+            "options": [
+              {
+                "label": "Employed full time",
+                "value": 1
+              },
+              {
+                "label": "Employed part time",
+                "value": 2
+              },
+              {
+                "label": "Self-employed",
+                "value": 3
+              },
+              {
+                "label": "Unemployed",
+                "value": 4
+              },
+              {
+                "label": "Student",
+                "value": 5
+              },
+              {
+                "label": "Retired",
+                "value": 6
+              },
+              {
+                "label": "Homemaker",
+                "value": 7
+              }
+            ],
+            "options_text": "Employed full time (1); Employed part time (2); Self-employed (3); Unemployed (4); Student (5); Retired (6); Homemaker (7)"
+          },
+          {
+            "number": 6,
+            "text": "Do you live in an urban or a rural area?",
+            "column": "RESIDENCE",
+            "subscale": "Demographics",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "categorical",
+            "options": [
+              {
+                "label": "Urban",
+                "value": 1
+              },
+              {
+                "label": "Rural",
+                "value": 2
+              }
+            ],
+            "options_text": "Urban (1); Rural (2)"
+          },
+          {
+            "number": 7,
+            "text": "Which band best describes your household monthly income?",
+            "column": "INCOME_BAND",
+            "subscale": "Demographics",
+            "required": false,
+            "reverse_coded": false,
+            "response_type": "categorical",
+            "options": [
+              {
+                "label": "Lowest quintile",
+                "value": 1
+              },
+              {
+                "label": "Second quintile",
+                "value": 2
+              },
+              {
+                "label": "Middle quintile",
+                "value": 3
+              },
+              {
+                "label": "Fourth quintile",
+                "value": 4
+              },
+              {
+                "label": "Highest quintile",
+                "value": 5
+              },
+              {
+                "label": "Prefer not to say",
+                "value": 99
+              }
+            ],
+            "options_text": "Lowest quintile (1); Second quintile (2); Middle quintile (3); Fourth quintile (4); Highest quintile (5); Prefer not to say (99)"
+          },
+          {
+            "number": 8,
+            "text": "Have you been diagnosed with any long-term medical condition?",
+            "column": "COMORBIDITY",
+            "subscale": "Clinical background",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "binary",
+            "options": [
+              {
+                "label": "No",
+                "value": 0
+              },
+              {
+                "label": "Yes",
+                "value": 1
+              }
+            ],
+            "options_text": "No (0); Yes (1)"
+          },
+          {
+            "number": 9,
+            "text": "For how many months have you had this condition?",
+            "column": "CONDITION_DURATION_MONTHS",
+            "subscale": "Clinical background",
+            "required": false,
+            "reverse_coded": false,
+            "response_type": "numeric",
+            "options": [],
+            "options_text": "Number entered by the respondent"
+          },
+          {
+            "number": 10,
+            "text": "Have you been admitted to hospital for this condition before?",
+            "column": "PRIOR_ADMISSION",
+            "subscale": "Clinical background",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "binary",
+            "options": [
+              {
+                "label": "No",
+                "value": 0
+              },
+              {
+                "label": "Yes",
+                "value": 1
+              }
+            ],
+            "options_text": "No (0); Yes (1)"
+          }
+        ]
+      },
+      {
+        "section_id": "psq-18",
+        "title": "Patient Satisfaction Questionnaire Short Form",
+        "abbrev": "PSQ-18",
+        "instructions": "How strongly do you AGREE or DISAGREE with each of the following statements about the medical care you receive?",
+        "source": "Marshall GN, Hays RD. The Patient Satisfaction Questionnaire Short-Form (PSQ-18). RAND Corporation, P-7865, 1994.",
+        "license": "public domain",
+        "text_withheld": false,
+        "is_template": false,
+        "n_questions": 18,
+        "grouping": {
+          "Communication": [
+            11,
+            23
+          ],
+          "Technical quality": [
+            12,
+            14,
+            16,
+            24
+          ],
+          "General satisfaction": [
+            13,
+            27
+          ],
+          "Financial aspects": [
+            15,
+            17
+          ],
+          "Accessibility and convenience": [
+            18,
+            19,
+            26,
+            28
+          ],
+          "Interpersonal manner": [
+            20,
+            21
+          ],
+          "Time spent with doctor": [
+            22,
+            25
+          ]
+        },
+        "questions": [
+          {
+            "number": 11,
+            "text": "Doctors are good about explaining the reason for medical tests",
+            "column": "PSQ18_1",
+            "subscale": "Communication",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 12,
+            "text": "I think my doctor's office has everything needed to provide complete medical care",
+            "column": "PSQ18_2",
+            "subscale": "Technical quality",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 13,
+            "text": "The medical care I have been receiving is just about perfect",
+            "column": "PSQ18_3",
+            "subscale": "General satisfaction",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 14,
+            "text": "Sometimes doctors make me wonder if their diagnosis is correct",
+            "column": "PSQ18_4",
+            "subscale": "Technical quality",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 15,
+            "text": "I feel confident that I can get the medical care I need without being set back financially",
+            "column": "PSQ18_5",
+            "subscale": "Financial aspects",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 16,
+            "text": "When I go for medical care, they are careful to check everything when treating and examining me",
+            "column": "PSQ18_6",
+            "subscale": "Technical quality",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 17,
+            "text": "I have to pay for more of my medical care than I can afford",
+            "column": "PSQ18_7",
+            "subscale": "Financial aspects",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 18,
+            "text": "I have easy access to the medical specialists I need",
+            "column": "PSQ18_8",
+            "subscale": "Accessibility and convenience",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 19,
+            "text": "Where I get medical care, people have to wait too long for emergency treatment",
+            "column": "PSQ18_9",
+            "subscale": "Accessibility and convenience",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 20,
+            "text": "Doctors act too businesslike and impersonal toward me",
+            "column": "PSQ18_10",
+            "subscale": "Interpersonal manner",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 21,
+            "text": "My doctors treat me in a very friendly and courteous manner",
+            "column": "PSQ18_11",
+            "subscale": "Interpersonal manner",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 22,
+            "text": "Those who provide my medical care sometimes hurry too much when they treat me",
+            "column": "PSQ18_12",
+            "subscale": "Time spent with doctor",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 23,
+            "text": "Doctors sometimes ignore what I tell them",
+            "column": "PSQ18_13",
+            "subscale": "Communication",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 24,
+            "text": "I have some doubts about the ability of the doctors who treat me",
+            "column": "PSQ18_14",
+            "subscale": "Technical quality",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 25,
+            "text": "Doctors usually spend plenty of time with me",
+            "column": "PSQ18_15",
+            "subscale": "Time spent with doctor",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 26,
+            "text": "I find it hard to get an appointment for medical care right away",
+            "column": "PSQ18_16",
+            "subscale": "Accessibility and convenience",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 27,
+            "text": "I am dissatisfied with some things about the medical care I receive",
+            "column": "PSQ18_17",
+            "subscale": "General satisfaction",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          },
+          {
+            "number": 28,
+            "text": "I am able to get medical care whenever I need it",
+            "column": "PSQ18_18",
+            "subscale": "Accessibility and convenience",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Strongly agree",
+                "value": 1
+              },
+              {
+                "label": "Agree",
+                "value": 2
+              },
+              {
+                "label": "Uncertain",
+                "value": 3
+              },
+              {
+                "label": "Disagree",
+                "value": 4
+              },
+              {
+                "label": "Strongly disagree",
+                "value": 5
+              }
+            ],
+            "options_text": "Strongly agree (1); Agree (2); Uncertain (3); Disagree (4); Strongly disagree (5)"
+          }
+        ]
+      },
+      {
+        "section_id": "pss-10",
+        "title": "Perceived Stress Scale-10",
+        "abbrev": "PSS10",
+        "instructions": "In the last month, how often have you felt or thought a certain way?",
+        "source": "Cohen S, Kamarck T, Mermelstein R. A global measure of perceived stress. J Health Soc Behav. 1983;24(4):385-396.",
+        "license": "free for research use",
+        "text_withheld": false,
+        "is_template": false,
+        "n_questions": 10,
+        "grouping": {
+          "Perceived helplessness": [
+            29,
+            30,
+            31,
+            34,
+            37,
+            38
+          ],
+          "Perceived self-efficacy": [
+            32,
+            33,
+            35,
+            36
+          ]
+        },
+        "questions": [
+          {
+            "number": 29,
+            "text": "In the last month, how often have you been upset because of something that happened unexpectedly?",
+            "column": "PSS10_1",
+            "subscale": "Perceived helplessness",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          },
+          {
+            "number": 30,
+            "text": "In the last month, how often have you felt that you were unable to control the important things in your life?",
+            "column": "PSS10_2",
+            "subscale": "Perceived helplessness",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          },
+          {
+            "number": 31,
+            "text": "In the last month, how often have you felt nervous and stressed?",
+            "column": "PSS10_3",
+            "subscale": "Perceived helplessness",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          },
+          {
+            "number": 32,
+            "text": "In the last month, how often have you felt confident about your ability to handle your personal problems?",
+            "column": "PSS10_4",
+            "subscale": "Perceived self-efficacy",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          },
+          {
+            "number": 33,
+            "text": "In the last month, how often have you felt that things were going your way?",
+            "column": "PSS10_5",
+            "subscale": "Perceived self-efficacy",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          },
+          {
+            "number": 34,
+            "text": "In the last month, how often have you found that you could not cope with all the things that you had to do?",
+            "column": "PSS10_6",
+            "subscale": "Perceived helplessness",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          },
+          {
+            "number": 35,
+            "text": "In the last month, how often have you been able to control irritations in your life?",
+            "column": "PSS10_7",
+            "subscale": "Perceived self-efficacy",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          },
+          {
+            "number": 36,
+            "text": "In the last month, how often have you felt that you were on top of things?",
+            "column": "PSS10_8",
+            "subscale": "Perceived self-efficacy",
+            "required": true,
+            "reverse_coded": true,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          },
+          {
+            "number": 37,
+            "text": "In the last month, how often have you been angered because of things that happened that were outside of your control?",
+            "column": "PSS10_9",
+            "subscale": "Perceived helplessness",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          },
+          {
+            "number": 38,
+            "text": "In the last month, how often have you felt difficulties were piling up so high that you could not overcome them?",
+            "column": "PSS10_10",
+            "subscale": "Perceived helplessness",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Never",
+                "value": 0
+              },
+              {
+                "label": "Almost never",
+                "value": 1
+              },
+              {
+                "label": "Sometimes",
+                "value": 2
+              },
+              {
+                "label": "Fairly often",
+                "value": 3
+              },
+              {
+                "label": "Very often",
+                "value": 4
+              }
+            ],
+            "options_text": "Never (0); Almost never (1); Sometimes (2); Fairly often (3); Very often (4)"
+          }
+        ]
+      },
+      {
+        "section_id": "psqi",
+        "title": "Pittsburgh Sleep Quality Index",
+        "abbrev": "PSQI",
+        "instructions": "Clock time, e.g. 11:00 PM",
+        "source": "Buysse DJ, Reynolds CF, Monk TH, Berman SR, Kupfer DJ. The Pittsburgh Sleep Quality Index: a new instrument for psychiatric practice and research. Psychiatry Res. 1989;28(2):193-213.",
+        "license": "free for research use",
+        "text_withheld": false,
+        "is_template": false,
+        "n_questions": 18,
+        "grouping": {
+          "Component: Sleep duration / latency (raw input)": [
+            39
+          ],
+          "Component: Sleep latency (raw input)": [
+            40
+          ],
+          "Component: Sleep duration / efficiency (raw input)": [
+            41
+          ],
+          "Component: Sleep duration (raw input)": [
+            42
+          ],
+          "Component: Sleep disturbance": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52
+          ],
+          "Component: Subjective sleep quality": [
+            53
+          ],
+          "Component: Use of sleep medication": [
+            54
+          ],
+          "Component: Daytime dysfunction": [
+            55,
+            56
+          ]
+        },
+        "questions": [
+          {
+            "number": 39,
+            "text": "During the past month, what time have you usually gone to bed at night?",
+            "column": "PSQI_BEDTIME",
+            "subscale": "Component: Sleep duration / latency (raw input)",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "free_text",
+            "options": [],
+            "options_text": "Free text"
+          },
+          {
+            "number": 40,
+            "text": "During the past month, how long (in minutes) has it usually taken you to fall asleep each night?",
+            "column": "PSQI_LATENCY_MIN",
+            "subscale": "Component: Sleep latency (raw input)",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "numeric",
+            "options": [],
+            "options_text": "Number entered by the respondent"
+          },
+          {
+            "number": 41,
+            "text": "During the past month, what time have you usually gotten up in the morning?",
+            "column": "PSQI_WAKETIME",
+            "subscale": "Component: Sleep duration / efficiency (raw input)",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "free_text",
+            "options": [],
+            "options_text": "Free text"
+          },
+          {
+            "number": 42,
+            "text": "During the past month, how many hours of actual sleep did you get at night? (This may be different than the number of hours you spent in bed.)",
+            "column": "PSQI_HOURS_SLEEP",
+            "subscale": "Component: Sleep duration (raw input)",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "numeric",
+            "options": [],
+            "options_text": "Number entered by the respondent"
+          },
+          {
+            "number": 43,
+            "text": "During the past month, how often have you had trouble sleeping because you cannot get to sleep within 30 minutes?",
+            "column": "PSQI_5A",
+            "subscale": "Component: Sleep disturbance",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 44,
+            "text": "During the past month, how often have you had trouble sleeping because you wake up in the middle of the night or early morning?",
+            "column": "PSQI_5B",
+            "subscale": "Component: Sleep disturbance",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 45,
+            "text": "During the past month, how often have you had trouble sleeping because you have to get up to use the bathroom?",
+            "column": "PSQI_5C",
+            "subscale": "Component: Sleep disturbance",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 46,
+            "text": "During the past month, how often have you had trouble sleeping because you cannot breathe comfortably?",
+            "column": "PSQI_5D",
+            "subscale": "Component: Sleep disturbance",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 47,
+            "text": "During the past month, how often have you had trouble sleeping because you cough or snore loudly?",
+            "column": "PSQI_5E",
+            "subscale": "Component: Sleep disturbance",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 48,
+            "text": "During the past month, how often have you had trouble sleeping because you feel too cold?",
+            "column": "PSQI_5F",
+            "subscale": "Component: Sleep disturbance",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 49,
+            "text": "During the past month, how often have you had trouble sleeping because you feel too hot?",
+            "column": "PSQI_5G",
+            "subscale": "Component: Sleep disturbance",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 50,
+            "text": "During the past month, how often have you had trouble sleeping because you had bad dreams?",
+            "column": "PSQI_5H",
+            "subscale": "Component: Sleep disturbance",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 51,
+            "text": "During the past month, how often have you had trouble sleeping because you have pain?",
+            "column": "PSQI_5I",
+            "subscale": "Component: Sleep disturbance",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 52,
+            "text": "During the past month, how often have you had trouble sleeping for other reason(s)?",
+            "column": "PSQI_5J",
+            "subscale": "Component: Sleep disturbance",
+            "required": false,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 53,
+            "text": "During the past month, how would you rate your sleep quality overall?",
+            "column": "PSQI_6",
+            "subscale": "Component: Subjective sleep quality",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Very good",
+                "value": 0
+              },
+              {
+                "label": "Fairly good",
+                "value": 1
+              },
+              {
+                "label": "Fairly bad",
+                "value": 2
+              },
+              {
+                "label": "Very bad",
+                "value": 3
+              }
+            ],
+            "options_text": "Very good (0); Fairly good (1); Fairly bad (2); Very bad (3)"
+          },
+          {
+            "number": 54,
+            "text": "During the past month, how often have you taken medicine to help you sleep (prescribed or 'over the counter')?",
+            "column": "PSQI_7",
+            "subscale": "Component: Use of sleep medication",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 55,
+            "text": "During the past month, how often have you had trouble staying awake while driving, eating meals, or engaging in social activity?",
+            "column": "PSQI_8",
+            "subscale": "Component: Daytime dysfunction",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "Not during the past month",
+                "value": 0
+              },
+              {
+                "label": "Less than once a week",
+                "value": 1
+              },
+              {
+                "label": "Once or twice a week",
+                "value": 2
+              },
+              {
+                "label": "Three or more times a week",
+                "value": 3
+              }
+            ],
+            "options_text": "Not during the past month (0); Less than once a week (1); Once or twice a week (2); Three or more times a week (3)"
+          },
+          {
+            "number": 56,
+            "text": "During the past month, how much of a problem has it been for you to keep up enough enthusiasm to get things done?",
+            "column": "PSQI_9",
+            "subscale": "Component: Daytime dysfunction",
+            "required": true,
+            "reverse_coded": false,
+            "response_type": "likert",
+            "options": [
+              {
+                "label": "No problem at all",
+                "value": 0
+              },
+              {
+                "label": "Only a very slight problem",
+                "value": 1
+              },
+              {
+                "label": "Somewhat of a problem",
+                "value": 2
+              },
+              {
+                "label": "A very big problem",
+                "value": 3
+              }
+            ],
+            "options_text": "No problem at all (0); Only a very slight problem (1); Somewhat of a problem (2); A very big problem (3)"
+          }
+        ]
+      }
+    ]
+  }
+}

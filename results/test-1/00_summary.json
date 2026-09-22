@@ -1,0 +1,176 @@
+{
+  "file": "Perceived_stress_and_sleep_quality_among_intensive_care_nurses_in_a_tertiary_psychiatric_hospital_simulated_coded.csv",
+  "n_rows": 53,
+  "n_cols": 50,
+  "structural_issues": {},
+  "classification_counts": {
+    "categorical": 2,
+    "continuous": 48
+  },
+  "likert_items_detected": [],
+  "identifiers_detected": [],
+  "all_missing_columns": [
+    "PSQI_BEDTIME",
+    "PSQI_WAKETIME"
+  ],
+  "pss10_scoring": {
+    "correct_total_mean": 20.208,
+    "correct_total_range": [
+      2,
+      34
+    ],
+    "tools_formula_total_mean": 28.208,
+    "tools_formula_total_range": [
+      10,
+      42
+    ],
+    "mean_inflation": 8.0
+  },
+  "group_items_signal": {
+    "correlation": {
+      "PSS10_1": {
+        "PSS10_1": 1.0,
+        "PSS10_2": 0.5,
+        "PSS10_3": 0.46,
+        "PSS10_4": -0.1,
+        "PSS10_5": -0.32,
+        "PSS10_6": 0.35,
+        "PSS10_7": -0.36,
+        "PSS10_8": -0.17,
+        "PSS10_9": 0.41,
+        "PSS10_10": 0.4
+      },
+      "PSS10_2": {
+        "PSS10_1": 0.5,
+        "PSS10_2": 1.0,
+        "PSS10_3": 0.46,
+        "PSS10_4": -0.09,
+        "PSS10_5": -0.37,
+        "PSS10_6": 0.48,
+        "PSS10_7": -0.19,
+        "PSS10_8": -0.15,
+        "PSS10_9": 0.52,
+        "PSS10_10": 0.42
+      },
+      "PSS10_3": {
+        "PSS10_1": 0.46,
+        "PSS10_2": 0.46,
+        "PSS10_3": 1.0,
+        "PSS10_4": -0.23,
+        "PSS10_5": -0.43,
+        "PSS10_6": 0.38,
+        "PSS10_7": -0.35,
+        "PSS10_8": -0.35,
+        "PSS10_9": 0.37,
+        "PSS10_10": 0.37
+      },
+      "PSS10_4": {
+        "PSS10_1": -0.1,
+        "PSS10_2": -0.09,
+        "PSS10_3": -0.23,
+        "PSS10_4": 1.0,
+        "PSS10_5": 0.29,
+        "PSS10_6": -0.27,
+        "PSS10_7": 0.39,
+        "PSS10_8": 0.34,
+        "PSS10_9": -0.21,
+        "PSS10_10": -0.0
+      },
+      "PSS10_5": {
+        "PSS10_1": -0.32,
+        "PSS10_2": -0.37,
+        "PSS10_3": -0.43,
+        "PSS10_4": 0.29,
+        "PSS10_5": 1.0,
+        "PSS10_6": -0.33,
+        "PSS10_7": 0.42,
+        "PSS10_8": 0.44,
+        "PSS10_9": -0.28,
+        "PSS10_10": -0.22
+      },
+      "PSS10_6": {
+        "PSS10_1": 0.35,
+        "PSS10_2": 0.48,
+        "PSS10_3": 0.38,
+        "PSS10_4": -0.27,
+        "PSS10_5": -0.33,
+        "PSS10_6": 1.0,
+        "PSS10_7": -0.35,
+        "PSS10_8": -0.25,
+        "PSS10_9": 0.58,
+        "PSS10_10": 0.47
+      },
+      "PSS10_7": {
+        "PSS10_1": -0.36,
+        "PSS10_2": -0.19,
+        "PSS10_3": -0.35,
+        "PSS10_4": 0.39,
+        "PSS10_5": 0.42,
+        "PSS10_6": -0.35,
+        "PSS10_7": 1.0,
+        "PSS10_8": 0.45,
+        "PSS10_9": -0.2,
+        "PSS10_10": -0.16
+      },
+      "PSS10_8": {
+        "PSS10_1": -0.17,
+        "PSS10_2": -0.15,
+        "PSS10_3": -0.35,
+        "PSS10_4": 0.34,
+        "PSS10_5": 0.44,
+        "PSS10_6": -0.25,
+        "PSS10_7": 0.45,
+        "PSS10_8": 1.0,
+        "PSS10_9": -0.15,
+        "PSS10_10": -0.15
+      },
+      "PSS10_9": {
+        "PSS10_1": 0.41,
+        "PSS10_2": 0.52,
+        "PSS10_3": 0.37,
+        "PSS10_4": -0.21,
+        "PSS10_5": -0.28,
+        "PSS10_6": 0.58,
+        "PSS10_7": -0.2,
+        "PSS10_8": -0.15,
+        "PSS10_9": 1.0,
+        "PSS10_10": 0.63
+      },
+      "PSS10_10": {
+        "PSS10_1": 0.4,
+        "PSS10_2": 0.42,
+        "PSS10_3": 0.37,
+        "PSS10_4": -0.0,
+        "PSS10_5": -0.22,
+        "PSS10_6": 0.47,
+        "PSS10_7": -0.16,
+        "PSS10_8": -0.15,
+        "PSS10_9": 0.63,
+        "PSS10_10": 1.0
+      }
+    },
+    "note": "Signal only: items that correlate strongly are candidates for the same subscale, but only you can judge whether they share a construct by reading their wording. Call group_items_tool again with `groups` to commit your decision."
+  },
+  "sleep_columns": {
+    "PSQI_BEDTIME": {
+      "pct_missing": 100.0,
+      "min": null,
+      "max": null
+    },
+    "PSQI_WAKETIME": {
+      "pct_missing": 100.0,
+      "min": null,
+      "max": null
+    },
+    "PSQI_HOURS_SLEEP": {
+      "pct_missing": 0.0,
+      "min": 18.0,
+      "max": 61.0
+    },
+    "PSQI_LATENCY_MIN": {
+      "pct_missing": 0.0,
+      "min": 18.0,
+      "max": 66.0
+    }
+  }
+}

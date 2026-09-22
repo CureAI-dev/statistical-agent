@@ -1,0 +1,6 @@
+{
+  "outcome": "PSQI_5A",
+  "predictors": ["AGE", "SEX", "PSS10_1"],
+  "analysis_plan": "Score the PSS-10 and the PSQI sleep items as separate subscales, report Cronbach's alpha for each, then test whether perceived stress predicts sleep quality, adjusting for age and sex.",
+  "notes": "PSS-10 is 0-4 anchored, not 1-5. Items 4, 5, 7 and 8 are reverse-scored."
+}

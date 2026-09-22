@@ -7,11 +7,13 @@ An autonomous agent that takes an Excel/CSV file and a plain-English analysis re
 - **Secure Sandbox Execution**: Code runs in an isolated E2B cloud sandbox, ensuring no arbitrary code executes on the host machine.
 - **Automated Column Classification**: Suggests types per column (likert, categorical, open_ended, identifier, continuous) using unique-value counts and matching against common Likert wordings.
 - **Statistical Test Recommendation**: Automatically selects appropriate statistical tests (t-test, ANOVA, chi-square, correlation, regression) based on data normality checks.
+- **Statistical Skill Runtime**: Loads the bundled statistical-analysis workflow after the planning gate, exposes at most two on-demand reference files, and copies assumption-check scripts into the analysis sandbox without dumping the full skill pack into model context.
 
 ## Project Structure
 ```
 Autonomus Agent/
 ├── docs/requirements.md              # Full specification and source of truth
+├── skill/statistical-analysis/       # Runtime method guidance, references, templates, sandbox scripts
 └── excel-analysis-agent-backend/     # The codebase (Python, uv-managed)
     ├── main.py                       # Smoke test script
     ├── agent.py                      # The LangChain ReAct agent loop
@@ -25,7 +27,7 @@ Autonomus Agent/
 ### Prerequisites
 - Python (managed via `uv`)
 - E2B API Key (for sandbox execution)
-- OpenAI API Key (for the LLM, currently using `gpt-4o-mini`)
+- OpenAI API Key (for the LLM, currently using `gpt-5`)
 
 ### Installation & Running
 
@@ -37,8 +39,25 @@ Autonomus Agent/
 2. Create a `.env` file in the `excel-analysis-agent-backend` directory and add your API keys:
    ```env
    E2B_API_KEY=your_e2b_api_key
+
+   # Which provider serves the LLM: "openai" or "azure" (default: openai).
+   LLM_SOURCE=openai
+
+   # Used when LLM_SOURCE=openai
    OPENAI_API_KEY=your_openai_api_key
+   OPENAI_MODEL=gpt-5-mini
+
+   # Used when LLM_SOURCE=azure. AZURE_DEPLOYMENT is the *deployment* name
+   # you created in Azure, which need not match the model name.
+   AZURE_API_BASE=https://your-resource.openai.azure.com/
+   AZURE_API_VERSION=2025-04-01-preview
+   AZURE_DEPLOYMENT=gpt-5
+   AZURE_API_KEY=your_azure_api_key
    ```
+
+   Optional guardrail: `MAX_RUN_TOKENS` caps total tokens for one run
+   (default 750,000). A run that crosses it stops and reports partial
+   progress instead of continuing to spend.
 
 3. Run the smoke test using `uv`:
    ```bash

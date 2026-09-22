@@ -32,6 +32,9 @@ if __name__ == "__main__":
     if result["status"] == "needs_clarification":
         print("\n=== Clarifying question ===")
         print(result["question"])
+    elif result["status"] == "token_budget_exceeded":
+        print("\n=== Stopped: token budget exceeded (MAX_RUN_TOKENS) ===")
+        print(result["answer"])
     elif result["status"] == "step_limit_exceeded":
         print("\n=== Stopped: step limit exceeded (FR-7.3 guardrail) ===")
         print(result["answer"])

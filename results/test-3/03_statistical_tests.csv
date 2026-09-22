@@ -1,0 +1,7 @@
+test,comparison,agent_reported,independently_recomputed
+Shapiro-Wilk,PSS10_total_score,"W=0.9497568454, p=0.0262759124","W=0.9497568454, p=0.0262759124"
+Mann-Whitney U,"PSS10_total by SEX (n=25,28)","U=166.5, p=0.0010966831","U=166.5, p=0.0010966831"
+Spearman,PSS10_total x PSQI_components,"rho=0.5650821552, p=1.0422241887e-05","rho=0.5650821552, p=1.0422241887e-05"
+Kruskal-Wallis,PSS10_total by EDUCATION,"H=7.9193938169, p=0.1607343000","H=7.9193938169, p=0.1607343000"
+Kruskal-Wallis,PSS10_total by INCOME_BAND,"H=1.7276765365, p=0.7856842210","H=1.7276765365, p=0.7856842210"
+Kruskal-Wallis,PSS10_total by EMPLOYMENT,"H=3.9005991590, p=0.6901260536","H=3.9005991590, p=0.6901260536"

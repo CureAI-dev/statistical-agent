@@ -1,0 +1,1349 @@
+{
+  "handle_id": "Perceived_stress_and_sleep_quality_among_intensive_care_nurses_in_a_tertiary_psychiatric_hospital_simulated_coded",
+  "classifications": {
+    "RESPONDENT_ID": {
+      "dtype": "str",
+      "n_unique": 53,
+      "unique_ratio": 1.0,
+      "top_values": {
+        "SIM-0001": 1,
+        "SIM-0002": 1,
+        "SIM-0003": 1,
+        "SIM-0004": 1,
+        "SIM-0005": 1,
+        "SIM-0006": 1,
+        "SIM-0007": 1,
+        "SIM-0008": 1
+      },
+      "suggested_type": "identifier",
+      "confidence": "overridden"
+    },
+    "SUBMITTED_AT": {
+      "dtype": "str",
+      "n_unique": 53,
+      "unique_ratio": 1.0,
+      "top_values": {
+        "2026-08-10T00:10:13+00:00": 1,
+        "2026-08-10T06:41:56+00:00": 1,
+        "2026-08-10T13:06:46+00:00": 1,
+        "2026-08-10T19:39:51+00:00": 1,
+        "2026-08-11T02:05:36+00:00": 1,
+        "2026-08-11T07:49:03+00:00": 1,
+        "2026-08-11T14:05:58+00:00": 1,
+        "2026-08-11T21:02:59+00:00": 1
+      },
+      "suggested_type": "identifier",
+      "confidence": "overridden"
+    },
+    "CONSENT": {
+      "dtype": "int64",
+      "n_unique": 1,
+      "unique_ratio": 0.019,
+      "top_values": {
+        "1": 53
+      },
+      "suggested_type": "categorical",
+      "confidence": "overridden"
+    },
+    "AGE": {
+      "dtype": "int64",
+      "n_unique": 31,
+      "unique_ratio": 0.585,
+      "top_values": {
+        "18": 5,
+        "40": 4,
+        "38": 3,
+        "41": 3,
+        "31": 3,
+        "20": 3,
+        "36": 2,
+        "26": 2
+      },
+      "suggested_type": "continuous",
+      "confidence": "medium"
+    },
+    "SEX": {
+      "dtype": "int64",
+      "n_unique": 2,
+      "unique_ratio": 0.038,
+      "top_values": {
+        "2": 28,
+        "1": 25
+      },
+      "suggested_type": "categorical",
+      "confidence": "overridden"
+    },
+    "EDUCATION": {
+      "dtype": "int64",
+      "n_unique": 6,
+      "unique_ratio": 0.113,
+      "top_values": {
+        "5": 13,
+        "3": 12,
+        "2": 10,
+        "6": 8,
+        "4": 8,
+        "1": 2
+      },
+      "suggested_type": "categorical",
+      "confidence": "overridden"
+    },
+    "MARITAL_STATUS": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "4": 20,
+        "3": 19,
+        "2": 7,
+        "1": 7
+      },
+      "suggested_type": "categorical",
+      "confidence": "overridden"
+    },
+    "EMPLOYMENT": {
+      "dtype": "int64",
+      "n_unique": 7,
+      "unique_ratio": 0.132,
+      "top_values": {
+        "7": 14,
+        "1": 10,
+        "2": 8,
+        "6": 7,
+        "4": 6,
+        "5": 4,
+        "3": 4
+      },
+      "suggested_type": "categorical",
+      "confidence": "overridden"
+    },
+    "RESIDENCE": {
+      "dtype": "int64",
+      "n_unique": 2,
+      "unique_ratio": 0.038,
+      "top_values": {
+        "2": 33,
+        "1": 20
+      },
+      "suggested_type": "categorical",
+      "confidence": "overridden"
+    },
+    "INCOME_BAND": {
+      "dtype": "float64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "2.0": 15,
+        "5.0": 10,
+        "3.0": 8,
+        "4.0": 8,
+        "1.0": 6
+      },
+      "suggested_type": "categorical",
+      "confidence": "overridden"
+    },
+    "COMORBIDITY": {
+      "dtype": "int64",
+      "n_unique": 2,
+      "unique_ratio": 0.038,
+      "top_values": {
+        "1": 27,
+        "0": 26
+      },
+      "suggested_type": "categorical",
+      "confidence": "overridden"
+    },
+    "CONDITION_DURATION_MONTHS": {
+      "dtype": "int64",
+      "n_unique": 29,
+      "unique_ratio": 0.547,
+      "top_values": {
+        "18": 5,
+        "42": 4,
+        "28": 4,
+        "49": 3,
+        "38": 3,
+        "31": 3,
+        "30": 2,
+        "40": 2
+      },
+      "suggested_type": "continuous",
+      "confidence": "medium"
+    },
+    "PRIOR_ADMISSION": {
+      "dtype": "int64",
+      "n_unique": 2,
+      "unique_ratio": 0.038,
+      "top_values": {
+        "1": 31,
+        "0": 22
+      },
+      "suggested_type": "categorical",
+      "confidence": "overridden"
+    },
+    "PSS10_1": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "3": 14,
+        "0": 11,
+        "4": 10,
+        "1": 9,
+        "2": 9
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSS10_2": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "4": 15,
+        "3": 11,
+        "0": 9,
+        "1": 9,
+        "2": 9
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSS10_3": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "3": 18,
+        "1": 12,
+        "0": 11,
+        "2": 7,
+        "4": 5
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSS10_4": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "1": 14,
+        "2": 14,
+        "3": 10,
+        "0": 8,
+        "4": 7
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSS10_5": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "1": 16,
+        "0": 14,
+        "2": 10,
+        "3": 9,
+        "4": 4
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSS10_6": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "1": 14,
+        "0": 13,
+        "3": 11,
+        "4": 9,
+        "2": 6
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSS10_7": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "1": 15,
+        "3": 12,
+        "0": 11,
+        "2": 8,
+        "4": 7
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSS10_8": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "1": 15,
+        "4": 12,
+        "3": 10,
+        "2": 8,
+        "0": 8
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSS10_9": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "0": 15,
+        "3": 11,
+        "1": 10,
+        "4": 10,
+        "2": 7
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSS10_10": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "0": 15,
+        "1": 13,
+        "3": 10,
+        "2": 9,
+        "4": 6
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_BEDTIME": {
+      "dtype": "float64",
+      "n_unique": 0,
+      "unique_ratio": 0.0,
+      "top_values": {},
+      "suggested_type": "continuous",
+      "confidence": "medium"
+    },
+    "PSQI_LATENCY_MIN": {
+      "dtype": "int64",
+      "n_unique": 31,
+      "unique_ratio": 0.585,
+      "top_values": {
+        "36": 4,
+        "53": 3,
+        "31": 3,
+        "21": 3,
+        "42": 3,
+        "25": 3,
+        "28": 3,
+        "41": 2
+      },
+      "suggested_type": "continuous",
+      "confidence": "medium"
+    },
+    "PSQI_WAKETIME": {
+      "dtype": "float64",
+      "n_unique": 0,
+      "unique_ratio": 0.0,
+      "top_values": {},
+      "suggested_type": "continuous",
+      "confidence": "medium"
+    },
+    "PSQI_HOURS_SLEEP": {
+      "dtype": "int64",
+      "n_unique": 33,
+      "unique_ratio": 0.623,
+      "top_values": {
+        "49": 4,
+        "36": 4,
+        "18": 3,
+        "41": 3,
+        "52": 3,
+        "45": 3,
+        "26": 2,
+        "57": 2
+      },
+      "suggested_type": "continuous",
+      "confidence": "medium"
+    },
+    "PSQI_5A": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "3": 25,
+        "2": 16,
+        "1": 9,
+        "0": 3
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_5B": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "0": 16,
+        "2": 14,
+        "3": 12,
+        "1": 11
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_5C": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "2": 16,
+        "1": 15,
+        "3": 13,
+        "0": 9
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_5D": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "0": 21,
+        "1": 14,
+        "2": 12,
+        "3": 6
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_5E": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "2": 17,
+        "1": 14,
+        "3": 11,
+        "0": 11
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_5F": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "2": 16,
+        "1": 15,
+        "0": 11,
+        "3": 11
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_5G": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "0": 25,
+        "1": 16,
+        "2": 9,
+        "3": 3
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_5H": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "2": 16,
+        "1": 14,
+        "0": 14,
+        "3": 9
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_5I": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "3": 18,
+        "1": 13,
+        "0": 12,
+        "2": 10
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_5J": {
+      "dtype": "float64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "0.0": 19,
+        "1.0": 17,
+        "2.0": 7,
+        "3.0": 7
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_6": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "1": 16,
+        "0": 13,
+        "3": 12,
+        "2": 12
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_7": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "3": 16,
+        "2": 14,
+        "0": 12,
+        "1": 11
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_8": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "1": 21,
+        "0": 13,
+        "2": 10,
+        "3": 9
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PSQI_9": {
+      "dtype": "int64",
+      "n_unique": 4,
+      "unique_ratio": 0.075,
+      "top_values": {
+        "0": 16,
+        "1": 15,
+        "2": 14,
+        "3": 8
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PROBLEMFOCUSED_COPING_1": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "4": 13,
+        "1": 13,
+        "5": 11,
+        "2": 9,
+        "3": 7
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PROBLEMFOCUSED_COPING_2": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "1": 13,
+        "3": 11,
+        "5": 11,
+        "2": 9,
+        "4": 9
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "PROBLEMFOCUSED_COPING_3": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "3": 13,
+        "4": 12,
+        "5": 11,
+        "1": 9,
+        "2": 8
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "EMOTION_REGULATION_COPIN_1": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "3": 13,
+        "1": 11,
+        "5": 10,
+        "4": 10,
+        "2": 9
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "EMOTION_REGULATION_COPIN_2": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "5": 16,
+        "1": 10,
+        "3": 10,
+        "2": 9,
+        "4": 8
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "EMOTION_REGULATION_COPIN_3": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "4": 14,
+        "1": 13,
+        "5": 11,
+        "2": 8,
+        "3": 7
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "SUPPORTSEEKING_COPING_1": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "5": 16,
+        "4": 11,
+        "3": 11,
+        "2": 9,
+        "1": 6
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "SUPPORTSEEKING_COPING_2": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "3": 12,
+        "2": 11,
+        "1": 11,
+        "4": 10,
+        "5": 9
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    },
+    "SUPPORTSEEKING_COPING_3": {
+      "dtype": "int64",
+      "n_unique": 5,
+      "unique_ratio": 0.094,
+      "top_values": {
+        "3": 12,
+        "2": 11,
+        "4": 11,
+        "5": 11,
+        "1": 8
+      },
+      "suggested_type": "likert",
+      "confidence": "overridden"
+    }
+  },
+  "scales": {
+    "PSS10_1": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSS10_2": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSS10_5": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": true,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSS10_6": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSS10_3": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSS10_7": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": true,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSS10_4": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": true,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSS10_8": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": true,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSS10_9": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5C": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSS10_10": {
+      "n_points": 5,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5E": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5A": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5D": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5B": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5G": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5H": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5F": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5I": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_5J": {
+      "n_points": 4,
+      "label_to_score": {
+        "0.0": 0.0,
+        "1.0": 1.0,
+        "2.0": 2.0,
+        "3.0": 3.0
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_6": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_7": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_8": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PSQI_9": {
+      "n_points": 4,
+      "label_to_score": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PROBLEMFOCUSED_COPING_1": {
+      "n_points": 5,
+      "label_to_score": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PROBLEMFOCUSED_COPING_2": {
+      "n_points": 5,
+      "label_to_score": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "PROBLEMFOCUSED_COPING_3": {
+      "n_points": 5,
+      "label_to_score": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "EMOTION_REGULATION_COPIN_1": {
+      "n_points": 5,
+      "label_to_score": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "EMOTION_REGULATION_COPIN_2": {
+      "n_points": 5,
+      "label_to_score": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "EMOTION_REGULATION_COPIN_3": {
+      "n_points": 5,
+      "label_to_score": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "SUPPORTSEEKING_COPING_1": {
+      "n_points": 5,
+      "label_to_score": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "SUPPORTSEEKING_COPING_2": {
+      "n_points": 5,
+      "label_to_score": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    },
+    "SUPPORTSEEKING_COPING_3": {
+      "n_points": 5,
+      "label_to_score": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5
+      },
+      "reverse_coded": false,
+      "confidence": "overridden",
+      "note": "Values are already numeric; assumed already on a score scale in ascending order."
+    }
+  },
+  "groups": {
+    "PSS10_total": {
+      "columns": [
+        "PSS10_1",
+        "PSS10_2",
+        "PSS10_3",
+        "PSS10_4",
+        "PSS10_5",
+        "PSS10_6",
+        "PSS10_7",
+        "PSS10_8",
+        "PSS10_9",
+        "PSS10_10"
+      ],
+      "rationale": "All PSS10 items are the standard 10 items measuring perceived stress; include all with assumed reverse-coding on 4,5,7,8."
+    },
+    "PROBLEMFOCUSED_COPING": {
+      "columns": [
+        "PROBLEMFOCUSED_COPING_1",
+        "PROBLEMFOCUSED_COPING_2",
+        "PROBLEMFOCUSED_COPING_3"
+      ],
+      "rationale": "Three items measuring problem-focused coping (per study assumption)."
+    },
+    "EMOTION_REGULATION_COPING": {
+      "columns": [
+        "EMOTION_REGULATION_COPIN_1",
+        "EMOTION_REGULATION_COPIN_2",
+        "EMOTION_REGULATION_COPIN_3"
+      ],
+      "rationale": "Three items measuring emotion regulation coping."
+    },
+    "SUPPORTSEEKING_COPING": {
+      "columns": [
+        "SUPPORTSEEKING_COPING_1",
+        "SUPPORTSEEKING_COPING_2",
+        "SUPPORTSEEKING_COPING_3"
+      ],
+      "rationale": "Three items measuring seeking social support coping."
+    },
+    "PSQI_components": {
+      "columns": [
+        "PSQI_5A",
+        "PSQI_5B",
+        "PSQI_5C",
+        "PSQI_5D",
+        "PSQI_5E",
+        "PSQI_5F",
+        "PSQI_5G",
+        "PSQI_5H",
+        "PSQI_5I",
+        "PSQI_5J",
+        "PSQI_6",
+        "PSQI_7",
+        "PSQI_8",
+        "PSQI_9"
+      ],
+      "rationale": "PSQI items to be converted to standard components and summed into global PSQI."
+    }
+  },
+  "token_usage": {
+    "input": 404239,
+    "output": 23825,
+    "total": 428064
+  },
+  "step_count": 15,
+  "tool_calls": [
+    {
+      "tool": "read_excel_tool",
+      "seconds": 0.021
+    },
+    {
+      "tool": "profile_tool",
+      "seconds": 0.034
+    },
+    {
+      "tool": "profile_tool",
+      "seconds": 0.026
+    },
+    {
+      "tool": "recall_memory_tool",
+      "seconds": 0.012
+    },
+    {
+      "tool": "classify_columns_tool",
+      "seconds": 0.013
+    },
+    {
+      "tool": "classify_columns_tool",
+      "seconds": 0.011
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.004
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.005
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.01
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.012
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.013
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.015
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.016
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.016
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.013
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.013
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.014
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.013
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.015
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.015
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.015
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.015
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.016
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.016
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.017
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.017
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.016
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.015
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.015
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.014
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.013
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.013
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.011
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.011
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.01
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.009
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.009
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.008
+    },
+    {
+      "tool": "infer_scale_tool",
+      "seconds": 0.007
+    },
+    {
+      "tool": "group_items_tool",
+      "seconds": 0.006
+    },
+    {
+      "tool": "group_items_tool",
+      "seconds": 0.002
+    },
+    {
+      "tool": "score_items_tool",
+      "seconds": 0.034
+    },
+    {
+      "tool": "run_code_tool",
+      "seconds": 0.755
+    },
+    {
+      "tool": "recommend_test_tool",
+      "seconds": 0.0
+    },
+    {
+      "tool": "recommend_test_tool",
+      "seconds": 0.0
+    }
+  ],
+  "summarization_events": 0
+}
