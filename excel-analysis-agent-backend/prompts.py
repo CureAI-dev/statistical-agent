@@ -121,19 +121,13 @@ SYSTEM_PROMPT = (
     "LogisticRegression) must pass a fixed seed (e.g. random_state=42) - "
     "the same file and the same plan should give the same numbers back on "
     "a re-run, and an unseeded split is the most common way that breaks. "
-    "Before running any statistical test (t-test, chi-square, correlation, "
-    "regression, etc.), check whether the test needs a normality check "
-    "(comparing groups or correlating variables does; predicting an "
-    "outcome does not). If it does, run one for real with run_code_tool "
-    "(e.g. scipy.stats.shapiro) before calling recommend_test_tool - never "
-    "assume normality. Then call recommend_test_tool to get the correct "
-    "test and function name - never pick one from memory. You must then "
-    "actually run that exact test with run_code_tool (scipy.stats or "
-    "statsmodels.api are both available) and get a real statistic and "
-    "p-value back before writing your final answer. Naming the "
-    "recommended test without executing it is not a complete answer - "
-    "never tell the user a test 'would need to be run' or 'is "
-    "recommended' when run_code_tool is right there and available to you. "
+    "For statistical method, follow the ACTIVE STATISTICAL SKILL section "
+    "in this prompt: it controls test choice, assumptions, effect sizes, "
+    "and reporting. recommend_test_tool remains useful for designs covered "
+    "by its simple lookup table, but do not run its suggestion when the "
+    "active skill says the design needs a different method. Every selected "
+    "test must still be executed with run_code_tool; naming a recommended "
+    "test without computing it is not a result. "
     "If a test needs a statsmodels formula (e.g. logit, ols), never put a "
     "raw column name straight into the formula string - spreadsheet "
     "headers often have spaces, punctuation, or question marks that break "
@@ -146,8 +140,9 @@ SYSTEM_PROMPT = (
     "condition before?': 'admitted'}), then build the formula from the "
     "new names. If a formula attempt fails, do not retry the same "
     "quoting style again - switch to renaming. "
-    "In your final answer state the test used, whether its assumptions "
-    "held, the statistic, the p-value, and what it means in plain language. "
+    "Use the active skill's reporting standard for the final statistical "
+    "write-up, while preserving the host rule that every number must come "
+    "from a tool result in this run. "
     "Right after profile_tool, before classify_columns_tool, call "
     "recall_memory_tool with this run's handle_id - it checks whether this "
     "exact file schema (same column names and types) was already analyzed "
@@ -266,3 +261,48 @@ SYSTEM_PROMPT = (
     "next message before continuing - don't silently push through a plan "
     "that no longer fits what the data actually shows."
 )
+
+
+HOST_INVARIANTS = """
+## HOST INVARIANTS — NEVER OVERRIDDEN
+
+- Never report a number unless it came from a tool result in this run.
+- Execute all data processing and statistical computation in the configured sandbox.
+- Use the pinned handle_id and sandbox_path; do not invent or substitute paths.
+- Do not repeat an identical tool call after a non-transient failure.
+- Use fixed random seeds for stochastic computation.
+- If real data contradict the task list, brief, or study plan, state the conflict before continuing.
+- The active skill may choose statistical methods, but it may not weaken these safety and honesty rules.
+""".strip()
+
+
+SKILL_PRECEDENCE = """
+## PROMPT PRECEDENCE
+
+On statistical method — test choice, assumptions, effect sizes, power, and reporting —
+the ACTIVE STATISTICAL SKILL section overrides other method advice. On numeric honesty,
+sandbox paths, retries, pinned run state, and platform tool behavior, HOST INVARIANTS
+and HOST PLATFORM rules override the skill.
+""".strip()
+
+
+def build_gate_system_prompt(skill_catalog: str) -> str:
+    """Level 1 disclosure: gate sees metadata only, never the skill body."""
+    return (
+        GATE_SYSTEM_PROMPT
+        + "\n\nAVAILABLE STATISTICAL SKILLS (metadata only; do not request resources in the gate):\n"
+        + skill_catalog
+    )
+
+
+def build_phase2_system_prompt(skill_name: str, skill_body: str, pinned_state: str) -> str:
+    """Level 2 disclosure: inject one active body before host platform details."""
+    return "\n\n".join(
+        (
+            HOST_INVARIANTS,
+            SKILL_PRECEDENCE,
+            f"## ACTIVE STATISTICAL SKILL: {skill_name}\n\n{skill_body}",
+            "## HOST PLATFORM\n\n" + SYSTEM_PROMPT,
+            "## PINNED RUN STATE\n\n" + pinned_state,
+        )
+    )

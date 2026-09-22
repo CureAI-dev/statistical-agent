@@ -7,11 +7,13 @@ An autonomous agent that takes an Excel/CSV file and a plain-English analysis re
 - **Secure Sandbox Execution**: Code runs in an isolated E2B cloud sandbox, ensuring no arbitrary code executes on the host machine.
 - **Automated Column Classification**: Suggests types per column (likert, categorical, open_ended, identifier, continuous) using unique-value counts and matching against common Likert wordings.
 - **Statistical Test Recommendation**: Automatically selects appropriate statistical tests (t-test, ANOVA, chi-square, correlation, regression) based on data normality checks.
+- **Statistical Skill Runtime**: Loads the bundled statistical-analysis workflow after the planning gate, exposes at most two on-demand reference files, and copies assumption-check scripts into the analysis sandbox without dumping the full skill pack into model context.
 
 ## Project Structure
 ```
 Autonomus Agent/
 ├── docs/requirements.md              # Full specification and source of truth
+├── skill/statistical-analysis/       # Runtime method guidance, references, templates, sandbox scripts
 └── excel-analysis-agent-backend/     # The codebase (Python, uv-managed)
     ├── main.py                       # Smoke test script
     ├── agent.py                      # The LangChain ReAct agent loop

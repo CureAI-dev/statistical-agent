@@ -39,6 +39,7 @@ from langchain_core.tools import tool
 import long_term_memory
 import study_plan
 from sandbox_tool import Runtime
+from skill_runtime import SkillDisclosureSession, load_skill, upload_scripts
 from store import (
     CLASSIFICATIONS,
     GROUPS,
@@ -63,6 +64,8 @@ from tools import (
 # The sandbox for this run, created the first time a tool needs it and
 # closed at the end of run() in agent.py.
 _sandbox: Runtime | None = None
+ACTIVE_SKILL = load_skill()
+SKILL_DISCLOSURE = SkillDisclosureSession(ACTIVE_SKILL)
 
 MAX_OUTPUT_CHARS = 2000
 
@@ -142,6 +145,15 @@ def _get_sandbox():
         # translates the %pip line into a real pip install in its own
         # interpreter, so this works on either backend.
         _sandbox.run_code("%pip install -q statsmodels")
+        uploaded_scripts = upload_scripts(ACTIVE_SKILL, _sandbox)
+        if uploaded_scripts:
+            script_dir = str(Path(uploaded_scripts[0]).parent)
+            _sandbox.run_code(
+                "import sys\n"
+                f"_skill_script_dir = {script_dir!r}\n"
+                "if _skill_script_dir not in sys.path:\n"
+                "    sys.path.insert(0, _skill_script_dir)"
+            )
     return _sandbox
 
 
@@ -153,6 +165,7 @@ def close_sandbox() -> None:
     if _sandbox is not None:
         _sandbox.close()
         _sandbox = None
+    SKILL_DISCLOSURE.reset()
 
 
 def _timed(func):
@@ -334,6 +347,23 @@ def run_code_tool(code: str) -> dict:
         "stderr": _truncate(result["stderr"]),
         "error": result["error"],
     }
+
+
+@tool
+@_timed
+@_with_retry
+def load_skill_resource_tool(relative_path: str) -> dict:
+    """Load one level-3 resource from the active statistical skill.
+
+    Use only when the active SKILL.md points to a specific reference,
+    template, or resource needed for the current analysis stage. Never use
+    this tool to load every skill file.
+
+    Args:
+        relative_path: Allowlisted path such as
+            references/test_selection_guide.md or templates/oneway_anova.md.
+    """
+    return SKILL_DISCLOSURE.load(relative_path)
 
 
 @tool

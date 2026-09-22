@@ -52,6 +52,7 @@ from agent_tools import (
     group_items_tool,
     infer_scale_tool,
     infer_scales_tool,
+    load_skill_resource_tool,
     profile_tool,
     read_excel_tool,
     recall_memory_tool,
@@ -62,11 +63,13 @@ from agent_tools import (
     study_plan_tool,
     submit_plan_tool,
 )
-from prompts import GATE_SYSTEM_PROMPT, SYSTEM_PROMPT
+from prompts import build_gate_system_prompt, build_phase2_system_prompt
 from report import write_outputs
+from skill_runtime import catalog_text, load_skill
 from store import HANDLES, SANDBOX_PATHS, SCHEMA_SIGS, STUDY_PLAN, TOOL_CALLS
 
 load_dotenv()
+ACTIVE_SKILL = load_skill()
 
 # FR-7.3 / NFR-6: an explicit ceiling well below langgraph's own default
 # (DEFAULT_RECURSION_LIMIT = 10007, confirmed by reading
@@ -478,6 +481,7 @@ tools = [
     score_items_tool,
     recall_memory_tool,
     set_preference_tool,
+    load_skill_resource_tool,
 ]
 
 # The default token_counter (count_tokens_approximately with no tools=)
@@ -555,7 +559,7 @@ def _run_gate_phase(file_path: str, question: str, assume_and_state: bool, brief
     gate_graph = create_deep_agent(
         model=model,
         tools=[read_excel_tool, profile_tool, submit_plan_tool],
-        system_prompt=GATE_SYSTEM_PROMPT,
+        system_prompt=build_gate_system_prompt(catalog_text(ACTIVE_SKILL)),
         backend=backend,
     )
     brief_text = _format_brief(brief)
@@ -798,9 +802,8 @@ def run(
             # how often compaction fires. Building a fresh graph per run() call to
             # do this mirrors the pattern _run_gate_phase already uses for its own
             # per-call graph.
-            phase2_system_prompt = (
-                SYSTEM_PROMPT
-                + "\n\nThis run's file handle, question, assumption (if any), and "
+            pinned_run_state = (
+                "This run's file handle, question, assumption (if any), and "
                 "task list - restated here because the opening message carrying "
                 "the same detail can be summarized away mid-run, and this cannot:\n"
                 + f"handle_id: {gate_result['handle_id']}, sandbox_path: {sandbox_path}\n\n"
@@ -877,6 +880,11 @@ def run(
                 "view, the handle_id/sandbox_path, column values, and task list "
                 "above still apply in full and are not themselves a signal that "
                 "the work is done."
+            )
+            phase2_system_prompt = build_phase2_system_prompt(
+                ACTIVE_SKILL.name,
+                ACTIVE_SKILL.body,
+                pinned_run_state,
             )
             run_graph = create_deep_agent(
                 model=model,
