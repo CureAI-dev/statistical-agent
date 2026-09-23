@@ -384,16 +384,28 @@ def _item_total_correlations(item_scores: pd.DataFrame) -> dict[str, float | Non
     return correlations
 
 
-def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, dict]) -> dict:
-    """Compute a per-respondent subscale score (mean of each item's
+def score_items(
+    handle: dict,
+    groups: dict[str, list[str]],
+    scales: dict[str, dict],
+    aggregations: dict[str, str] | None = None,
+) -> dict:
+    """Compute a per-respondent subscale score (mean or sum of each item's
     reverse-coded score) and Cronbach's alpha for each group
     (docs/requirements.md FR-9.5/FR-9.6).
 
-    The per-respondent score is the mean of whatever items that respondent
-    answered (pandas' default skip-NaN mean) - a legitimate, common
-    "prorated" scoring convention, left as-is rather than imposing a
-    stricter complete-cases-only policy this project has no stated
-    preference between. But Cronbach's alpha and the item-total-correlation
+    aggregations: optional {group_name: "mean" | "sum"}, default "mean" for
+    any group not named. Some instruments are scored as a mean (e.g. a
+    0-4-per-item average), others as a total (e.g. PSS-10's 0-40 sum) -
+    which one is correct depends on the instrument, the same kind of
+    judgment call as reverse-coding, so this is never guessed here; the
+    caller (agent_tools.group_items_tool's commit call) must state it.
+
+    Either way, the per-respondent score is computed from whatever items
+    that respondent answered (pandas' default skip-NaN mean/sum) - a
+    legitimate, common "prorated" scoring convention, left as-is rather
+    than imposing a stricter complete-cases-only policy this project has
+    no stated preference between. But Cronbach's alpha and the item-total-correlation
     diagnostic are NOT computed the same way: both compare each
     respondent's item total against everyone else's, and mixing in a
     respondent who only answered 2 of 5 items (whose "total" would
@@ -412,12 +424,16 @@ def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, di
     context small.
     """
     df = handle["dataframe"]
+    aggregations = aggregations or {}
     new_columns: dict[str, pd.Series] = {}
     summary: dict[str, dict] = {}
 
     for group_name, cols in groups.items():
+        aggregation = aggregations.get(group_name, "mean")
+        if aggregation not in ("mean", "sum"):
+            raise ValueError(f"Unknown aggregation {aggregation!r} for group {group_name!r}; use 'mean' or 'sum'.")
         item_scores = pd.DataFrame({col: _score_series(df[col], scales[col]) for col in cols})
-        subscale_score = item_scores.mean(axis=1)
+        subscale_score = item_scores.sum(axis=1) if aggregation == "sum" else item_scores.mean(axis=1)
         score_column = f"{group_name}_score"
         new_columns[score_column] = subscale_score
 
@@ -428,6 +444,7 @@ def score_items(handle: dict, groups: dict[str, list[str]], scales: dict[str, di
             # reconstruct from group_name) so the model can't typo or
             # forget the "_score" suffix when it goes to use this column.
             "score_column": score_column,
+            "aggregation": aggregation,
             "n_items": len(cols),
             "columns": cols,
             "cronbachs_alpha": _cronbachs_alpha(complete),

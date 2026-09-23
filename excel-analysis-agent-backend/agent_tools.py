@@ -529,6 +529,7 @@ def group_items_tool(
     handle_id: str,
     groups: dict[str, list[str]] | None = None,
     rationale: dict[str, str] | None = None,
+    aggregation: dict[str, str] | None = None,
 ) -> dict:
     """Suggest, or commit, how this file's Likert items group into
     subscales/constructs.
@@ -548,6 +549,12 @@ def group_items_tool(
             Omit to just see the correlation signal.
         rationale: optional {subscale_name: reason}, stored alongside the
             grouping for the record.
+        aggregation: optional {subscale_name: "mean" | "sum"}, read by
+            score_items_tool. Defaults to "mean" for any subscale not
+            named. Use "sum" when the instrument's own scoring rule is a
+            total, not a per-item average (e.g. PSS-10 reports a 0-40
+            sum) - decide this the same way you decide reverse-coding, by
+            reading the instrument's actual scoring rule, never guess.
     """
     if handle_id not in HANDLES:
         return {"error": f"No file loaded with handle_id '{handle_id}'. Call read_excel_tool first."}
@@ -576,8 +583,19 @@ def group_items_tool(
     if missing:
         return {"error": f"These columns need a committed scale first (call infer_scale_tool): {missing}"}
 
+    bad_aggregations = {
+        name: agg for name, agg in (aggregation or {}).items() if agg not in ("mean", "sum")
+    }
+    if bad_aggregations:
+        return {"error": f"aggregation must be 'mean' or 'sum', got {bad_aggregations}"}
+
     committed = {
-        name: {"columns": cols, "rationale": (rationale or {}).get(name)} for name, cols in groups.items()
+        name: {
+            "columns": cols,
+            "rationale": (rationale or {}).get(name),
+            "aggregation": (aggregation or {}).get(name, "mean"),
+        }
+        for name, cols in groups.items()
     }
     GROUPS[handle_id] = committed
     long_term_memory.remember_groups(SCHEMA_SIGS[handle_id], committed)
@@ -592,11 +610,14 @@ def score_items_tool(handle_id: str, groups: list[str] | None = None) -> dict:
     Cronbach's alpha, and write the new score column(s) into the working
     data automatically.
 
-    Requires group_items_tool to have committed groups first. Writes a
+    Requires group_items_tool to have committed groups first. Each group
+    is scored as a mean or a sum, whichever group_items_tool's commit call
+    set as that group's aggregation (mean if it wasn't set). Writes a
     '{group}_score' column per group into the file's data and re-uploads it
     to the sandbox at its existing path - reload the file in run_code_tool
     afterward (e.g. pd.read_csv(sandbox_path) again) to see the new
-    column, then use it (not a hand-built average) in any later test.
+    column, then use it (not a hand-built average or total) in any later
+    test.
 
     Args:
         handle_id: the id returned by read_excel_tool.
@@ -615,9 +636,12 @@ def score_items_tool(handle_id: str, groups: list[str] | None = None) -> dict:
     }
     if not selected:
         return {"error": f"No matching committed groups for {groups}; committed groups are {list(committed_groups)}."}
+    selected_aggregations = {
+        name: info.get("aggregation", "mean") for name, info in committed_groups.items() if name in selected
+    }
 
     handle = {"handle_id": handle_id, "dataframe": HANDLES[handle_id]}
-    result = score_items(handle, selected, SCALES.get(handle_id, {}))
+    result = score_items(handle, selected, SCALES.get(handle_id, {}), selected_aggregations)
 
     df = HANDLES[handle_id]
     for col_name, series in result["new_columns"].items():
