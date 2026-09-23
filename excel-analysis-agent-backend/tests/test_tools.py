@@ -213,6 +213,39 @@ def test_score_items_alpha_uses_complete_cases_only():
     assert result["new_columns"]["g_score"].iloc[2] == pytest.approx(3.5)
 
 
+def test_score_items_defaults_to_mean_when_no_aggregation_given():
+    df = pd.DataFrame({"q1": [1, 2, 3, 4, 5], "q2": [1, 2, 3, 4, 5]})
+    scale = {"n_points": 5, "reverse_coded": False, "label_to_score": {}}
+    result = score_items({"handle_id": "h", "dataframe": df}, {"g": ["q1", "q2"]}, {"q1": scale, "q2": scale})
+    assert result["new_columns"]["g_score"].tolist() == [1, 2, 3, 4, 5]
+    assert result["summary"]["g"]["aggregation"] == "mean"
+
+
+def test_score_items_sum_aggregation():
+    df = pd.DataFrame({"q1": [1, 2, 3, 4, 5], "q2": [1, 2, 3, 4, 5]})
+    scale = {"n_points": 5, "reverse_coded": False, "label_to_score": {}}
+    result = score_items(
+        {"handle_id": "h", "dataframe": df},
+        {"g": ["q1", "q2"]},
+        {"q1": scale, "q2": scale},
+        aggregations={"g": "sum"},
+    )
+    assert result["new_columns"]["g_score"].tolist() == [2, 4, 6, 8, 10]
+    assert result["summary"]["g"]["aggregation"] == "sum"
+
+
+def test_score_items_unknown_aggregation_raises():
+    df = pd.DataFrame({"q1": [1, 2, 3]})
+    scale = {"n_points": 5, "reverse_coded": False, "label_to_score": {}}
+    with pytest.raises(ValueError):
+        score_items(
+            {"handle_id": "h", "dataframe": df},
+            {"g": ["q1"]},
+            {"q1": scale},
+            aggregations={"g": "median"},
+        )
+
+
 def test_score_items_reverse_coding_applied():
     df = pd.DataFrame({"q1": [1, 2, 3, 4, 5]})
     scale = {"n_points": 5, "reverse_coded": True, "label_to_score": {}}
