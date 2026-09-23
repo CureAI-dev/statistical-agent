@@ -221,6 +221,23 @@ def test_score_items_reverse_coding_applied():
     assert result["new_columns"]["g_score"].tolist() == [5, 4, 3, 2, 1]
 
 
+def test_score_items_reverse_coding_zero_based_scale():
+    # A 0-4 item (like PSS-10) must reverse to 4 - x, not 6 - x.
+    labels = {"Never": 0, "Almost never": 1, "Sometimes": 2, "Fairly often": 3, "Very often": 4}
+    df = pd.DataFrame({"q1": list(labels)})
+    scale = {"n_points": 5, "reverse_coded": True, "label_to_score": labels}
+    result = score_items({"handle_id": "h", "dataframe": df}, {"g": ["q1"]}, {"q1": scale})
+    assert result["new_columns"]["g_score"].tolist() == [4, 3, 2, 1, 0]
+
+
+def test_score_items_reverse_coding_one_based_labels():
+    labels = {"Strongly disagree": 1, "Disagree": 2, "Neutral": 3, "Agree": 4, "Strongly agree": 5}
+    df = pd.DataFrame({"q1": list(labels)})
+    scale = {"n_points": 5, "reverse_coded": True, "label_to_score": labels}
+    result = score_items({"handle_id": "h", "dataframe": df}, {"g": ["q1"]}, {"q1": scale})
+    assert result["new_columns"]["g_score"].tolist() == [5, 4, 3, 2, 1]
+
+
 # ---------------------------------------------------------------------------
 # read_excel (FR-1.1/FR-1.4/FR-1.5)
 # ---------------------------------------------------------------------------

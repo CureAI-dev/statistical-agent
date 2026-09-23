@@ -290,7 +290,11 @@ def _score_series(series: pd.Series, scale: dict) -> pd.Series:
         keyed = {str(k).strip().lower(): v for k, v in scale["label_to_score"].items()}
         scored = series.astype(str).str.strip().str.lower().map(keyed)
     if scale.get("reverse_coded"):
-        scored = (scale["n_points"] + 1) - scored
+        # Flip around the scale's own endpoints (min + max - x), so a 0-4
+        # item becomes 4 - x, not 6 - x. With no label map, assume 1..n.
+        points = list((scale.get("label_to_score") or {}).values())
+        low, high = (min(points), max(points)) if points else (1, scale["n_points"])
+        scored = (low + high) - scored
     return scored
 
 
