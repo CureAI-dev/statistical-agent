@@ -18,6 +18,7 @@ from tools import (
     classify_columns,
     group_items,
     infer_scale,
+    profile,
     read_excel,
     recommend_test,
     score_items,
@@ -89,6 +90,21 @@ def test_classify_columns_reports_n_unique_for_low_variance_detection():
     assert result["constant"]["n_unique"] == 1
 
 
+def test_classify_columns_top_values_capped_at_5():
+    # Context-cost fix, issue #15: was capped at 8.
+    df = pd.DataFrame({"many_values": [f"v{i}" for i in range(10)]})
+    result = classify_columns({"handle_id": "h", "dataframe": df})
+    assert len(result["many_values"]["top_values"]) == 5
+
+
+def test_profile_sample_rows_capped_at_1():
+    # Context-cost fix, issue #15: was capped at 3.
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    result = profile({"handle_id": "h", "dataframe": df})
+    assert len(result["sample_rows"]) == 1
+    assert result["sample_rows"][0] == {"a": 1}
+
+
 # ---------------------------------------------------------------------------
 # infer_scale (FR-9.2) - never guesses reverse-coding; that's asserted here
 # by checking it's always False/None regardless of input.
@@ -137,6 +153,21 @@ def test_group_items_skips_columns_without_committed_scale():
 
     assert result["skipped"] == ["q3"]
     assert result["correlation"]["q1"]["q2"] == 1.0
+
+
+def test_group_items_correlation_drops_self_correlation_diagonal():
+    # Every column trivially correlates 1.0 with itself - that's zero
+    # signal and shouldn't be resent to the model (context-cost fix,
+    # issue #15).
+    df = pd.DataFrame({"q1": [1, 2, 3, 4, 5], "q2": [5, 4, 3, 2, 1]})
+    scale = {"n_points": 5, "reverse_coded": False, "label_to_score": {"1": 1}}
+    scales = {"q1": scale, "q2": scale}
+
+    result = group_items({"handle_id": "h", "dataframe": df}, ["q1", "q2"], scales)
+
+    assert "q1" not in result["correlation"]["q1"]
+    assert "q2" not in result["correlation"]["q2"]
+    assert result["correlation"]["q1"]["q2"] == -1.0
 
 
 # ---------------------------------------------------------------------------
