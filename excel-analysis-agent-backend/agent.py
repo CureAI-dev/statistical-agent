@@ -584,6 +584,7 @@ def _run_gate_phase(file_path: str, question: str, assume_and_state: bool, brief
     total_tokens = {"input": 0, "output": 0, "total": 0}
     step_count = 0
     n_seen = 0
+    messages: list = []  # stays [] if the stream raises before its first step
     try:
         for step in gate_graph.stream(
             {"messages": [{"role": "user", "content": gate_message}]},
@@ -636,7 +637,40 @@ def _run_gate_phase(file_path: str, question: str, assume_and_state: bool, brief
         "trace_lines": trace_lines,
         "total_tokens": total_tokens,
         "step_count": step_count,
+        "profile_summary": _extract_profile_summary(messages),
     }
+
+
+def _extract_profile_summary(messages: list) -> dict | None:
+    """Pull profile_tool's own result back out of the gate phase's message
+    list (last call wins, in case the model somehow called it more than
+    once), so run() can hand phase 2 the handful of facts it would
+    otherwise re-fetch by calling profile_tool again - just row/column
+    count, dtypes, and null counts, not the (bulkier, less essential)
+    numeric_summary or sample_rows. None if profile_tool was never called
+    or its result wasn't the expected shape (e.g. an {"error": ...}
+    result) - run() treats that the same as "nothing to hand over"."""
+    summary = None
+    for message in messages:
+        if getattr(message, "type", None) != "tool" or getattr(message, "name", None) != "profile_tool":
+            continue
+        try:
+            parsed = json.loads(message.content)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(parsed, dict) and "error" not in parsed:
+            summary = {
+                "n_rows": parsed.get("n_rows"),
+                "n_cols": parsed.get("n_cols"),
+                "dtypes": parsed.get("dtypes"),
+                # Only the columns that actually have missing values - a
+                # clean file (the common case) then costs nothing extra to
+                # pin, rather than restating "0" for every column.
+                "columns_with_nulls": {
+                    col: n for col, n in (parsed.get("null_counts") or {}).items() if n
+                },
+            }
+    return summary
 
 
 def run(
@@ -779,6 +813,21 @@ def run(
             study_plan_title = _plan.get("title") if _plan else None
             sandbox_path = SANDBOX_PATHS.get(gate_result["handle_id"], "")
             assumption_line = f"Assumption: {gate_result['assumption']}\n\n" if gate_result.get("assumption") else ""
+            # The handful of facts profile_tool would otherwise be
+            # re-called just to re-learn (see _extract_profile_summary) -
+            # None when the gate phase somehow never called it, in which
+            # case there is nothing to hand over and phase 2 is on its own.
+            profile_summary = gate_output.get("profile_summary")
+            profile_summary_line = (
+                f"This file was already profiled in the planning step above - "
+                f"{profile_summary['n_rows']} rows, {profile_summary['n_cols']} columns. "
+                f"Reuse these facts instead of calling profile_tool again:\n"
+                f"dtypes: {json.dumps(profile_summary['dtypes'])}\n"
+                f"columns with missing values (any column not listed has none): "
+                f"{json.dumps(profile_summary['columns_with_nulls'])}\n\n"
+                if profile_summary
+                else ""
+            )
 
             # The file handle, question, assumption, and task list all go into
             # phase 2's *system* prompt, not only the opening Human message - a
@@ -809,6 +858,7 @@ def run(
                 + f"handle_id: {gate_result['handle_id']}, sandbox_path: {sandbox_path}\n\n"
                 + f"Question: {question}\n\n"
                 + assumption_line
+                + profile_summary_line
                 + f"Task list:\n{_format_tasks(gate_result['tasks'])}\n\n"
                 + (
                 f"This dataset has a STUDY PLAN: {study_plan_title!r}. It is "
@@ -911,9 +961,14 @@ def run(
             # reliable as the same instruction restated in the message it's
             # actively responding to - keeping both is what's actually
             # reliable, not redundant in practice even though it's redundant on
-            # paper.
+            # paper. profile_tool got the identical bug for the identical
+            # reason (a real run called it again immediately, right before
+            # recall_memory_tool - same class of duplicate as read_excel_tool,
+            # just never patched) so it gets the same two-place fix here.
             user_message = (
-                f"This file is already loaded - do not call read_excel_tool again. "
+                f"This file is already loaded and already profiled - do not call "
+                f"read_excel_tool or profile_tool again. Call recall_memory_tool "
+                f"first instead. "
                 f"handle_id: {gate_result['handle_id']}, sandbox_path: {sandbox_path}\n\n"
                 f"Question: {question}"
             )
