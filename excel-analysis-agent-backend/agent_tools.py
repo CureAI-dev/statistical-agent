@@ -308,7 +308,7 @@ def read_excel_tool(path: str, sheet: str | int = 0) -> dict:
 @_with_retry
 def profile_tool(handle_id: str) -> dict:
     """Inspect a previously loaded file: column types, null counts, basic
-    numeric stats, and a few sample rows.
+    numeric stats, and one sample row.
 
     Use this to understand a file's shape and quality before analyzing it.
 

@@ -99,6 +99,13 @@ def read_excel(path: str, sheet: str | int = 0) -> dict:
 
 
 def profile(handle: dict) -> dict:
+    """docs/requirements.md FR-1.2. sample_rows is capped at 1 (not 3) -
+    this result gets resent to the model on every later turn for the rest
+    of the run (see docs/progress.md's context-cost finding), and
+    classify_columns_tool's own per-column top_values already gives real
+    example values for every column right after this - a second and
+    third full row added little beyond what that first row already
+    shows."""
     df = handle["dataframe"]
 
     return {
@@ -108,7 +115,7 @@ def profile(handle: dict) -> dict:
         "dtypes": df.dtypes.astype(str).to_dict(),
         "null_counts": df.isnull().sum().to_dict(),
         "numeric_summary": df.describe().to_dict(),
-        "sample_rows": df.head(3).to_dict(orient="records"),
+        "sample_rows": df.head(1).to_dict(orient="records"),
     }
 
 
@@ -198,7 +205,10 @@ def _classify_column(series: pd.Series, n_rows: int) -> dict:
         "dtype": str(series.dtype),
         "n_unique": n_unique,
         "unique_ratio": round(unique_ratio, 3),
-        "top_values": non_null.value_counts().head(8).to_dict(),
+        # Capped at 5 (not 8) for the same context-cost reason as
+        # profile()'s sample_rows - this is per-column, so the saving
+        # multiplies by column count on a wide file.
+        "top_values": non_null.value_counts().head(5).to_dict(),
     }
 
     if pd.api.types.is_numeric_dtype(series):
@@ -320,8 +330,15 @@ def group_items(handle: dict, cols: list[str], scales: dict[str, dict]) -> dict:
             continue
         numeric[col] = _score_series(df[col], scale)
 
+    # Every column trivially correlates 1.0 with itself - dropping the
+    # diagonal removes len(cols) entries of zero signal per call, for the
+    # same context-cost reason as profile()'s sample_rows above.
+    correlation = numeric.corr().round(2).to_dict()
+    for col in correlation:
+        del correlation[col][col]
+
     result = {
-        "correlation": numeric.corr().round(2).to_dict(),
+        "correlation": correlation,
         "note": (
             "Signal only: items that correlate strongly are candidates for "
             "the same subscale, but only you can judge whether they share "
